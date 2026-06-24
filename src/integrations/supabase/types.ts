@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      movies: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_min: number | null
+          genre: string | null
+          id: string
+          poster_url: string | null
+          title: string
+          trailer_url: string | null
+          video_url: string | null
+          views: number
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_min?: number | null
+          genre?: string | null
+          id?: string
+          poster_url?: string | null
+          title: string
+          trailer_url?: string | null
+          video_url?: string | null
+          views?: number
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_min?: number | null
+          genre?: string | null
+          id?: string
+          poster_url?: string | null
+          title?: string
+          trailer_url?: string | null
+          video_url?: string | null
+          views?: number
+          year?: number | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          device_id: string
+          id: string
+          movie_id: string
+          rating: number
+          username: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          movie_id: string
+          rating: number
+          username: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          movie_id?: string
+          rating?: number
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_history: {
+        Row: {
+          device_id: string
+          id: string
+          movie_id: string
+          watched_at: string
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          movie_id: string
+          watched_at?: string
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          movie_id?: string
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "view_history_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watchlist: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          movie_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          movie_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          movie_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
