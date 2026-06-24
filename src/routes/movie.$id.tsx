@@ -72,9 +72,11 @@ function MoviePage() {
   }
 
   async function onShare() {
+    const cur = m;
+    if (!cur) return;
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (navigator.share) {
-      try { await navigator.share({ title: m.title, url }); return; } catch {}
+      try { await navigator.share({ title: cur.title, url }); return; } catch {}
     }
     await navigator.clipboard.writeText(url);
     toast.success("Link copied");
