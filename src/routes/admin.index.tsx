@@ -5,6 +5,7 @@ import { Edit, Plus, Trash2, Upload, X } from "lucide-react";
 import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAsset } from "@/lib/movies";
 import { toast } from "sonner";
 import { CategoryStrip } from "@/components/CategoryStrip";
+import { DEFAULT_CATEGORIES } from "@/components/CategoryStrip";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminLibrary,
@@ -167,6 +168,9 @@ function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onC
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={onSubmit} className="my-8 w-full max-w-2xl glass rounded-3xl p-6 space-y-4 relative">
+        <datalist id="cat-suggest">
+          {DEFAULT_CATEGORIES.map((c) => <option key={c} value={c} />)}
+        </datalist>
         <button type="button" onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10"><X className="h-4 w-4" /></button>
         <h2 className="text-2xl font-bold">{initial ? "Edit movie" : "Add new movie"}</h2>
 
