@@ -44,11 +44,12 @@ function MoviePage() {
     );
   }
 
-  function startVideo() {
+  const startVideo = () => {
     setPlaying("video");
     logView(device, id).catch(() => {});
-    if (m) incrementViews(id, m.views).catch(() => {});
-  }
+    const cur = m;
+    if (cur) incrementViews(id, cur.views).catch(() => {});
+  };
 
   async function onSubmitReview(e: React.FormEvent) {
     e.preventDefault();
