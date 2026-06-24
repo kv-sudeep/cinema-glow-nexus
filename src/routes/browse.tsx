@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 import { MovieCard } from "@/components/MovieCard";
+import { HeroBanner, PosterCard } from "@/components/HeroBanner";
 import { CategoryStrip } from "@/components/CategoryStrip";
 import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
@@ -74,82 +75,41 @@ function Browse() {
   return (
     <div className="min-h-screen">
       <AppNav />
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 pt-4">
-        <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
-      </div>
-      {featured && (
-        <section className="relative">
-          <div className="absolute inset-0 -z-10">
-            {featured.poster_url ? (
-              <img src={featured.poster_url} alt="" className="h-[60vh] w-full object-cover opacity-40" />
-            ) : (
-              <div className="h-[60vh] bg-gradient-to-br from-primary/30 to-accent/20" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-          </div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-12">
-            <span className="inline-block text-xs uppercase tracking-widest px-2.5 py-1 rounded-full glass">Featured</span>
-            <h1 className="mt-4 text-4xl sm:text-6xl font-extrabold leading-[1.05] max-w-3xl">
-              {featured.title}
-            </h1>
-            <p className="mt-3 max-w-2xl text-muted-foreground line-clamp-3">{featured.description}</p>
-            <button
-              onClick={() => nav({ to: "/movie/$id", params: { id: featured.id } })}
-              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]"
-            >
-              ▶ Watch now
-            </button>
-          </div>
-        </section>
-      )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 space-y-10">
-        <div className="flex gap-3 items-center">
-          <SearchPill value={q} onChange={setQ} />
+      {featured && <HeroBanner movie={featured} rating={ratings[featured.id] ?? null} />}
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-6 space-y-8">
+        <SearchPill value={q} onChange={setQ} />
+
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3">Trending in</h2>
+          <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
         </div>
 
         {continueWatching.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold mb-4">Continue watching</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {continueWatching.map((m) => (
-                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
-              ))}
-            </div>
-          </section>
+          <Row title="Continue Watching" movies={continueWatching} />
         )}
 
         {newMovies.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold mb-4">New movies</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {newMovies.map((m) => (
-                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
-              ))}
-            </div>
-          </section>
+          <Row title="New Movies" movies={newMovies} />
         )}
 
         {recommendations.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold mb-4">{recoGenres.size > 0 ? "Recommended for you" : "Fresh picks"}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {recommendations.map((m) => (
-                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
-              ))}
-            </div>
-          </section>
+          <Row
+            title={recoGenres.size > 0 ? "Recommended for you" : "Fresh picks"}
+            movies={recommendations}
+          />
         )}
 
         <section>
-          <h2 className="text-xl font-bold mb-4">
+          <h2 className="text-xl font-bold mb-3">
             {category ? `${category} movies` : "All movies"}{" "}
             <span className="text-muted-foreground text-sm font-normal">({filtered.length})</span>
           </h2>
           {moviesQ.isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] rounded-2xl glow-card animate-pulse" />
+                <div key={i} className="aspect-[2/3] rounded-xl bg-card animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
@@ -169,5 +129,18 @@ function Browse() {
         </section>
       </main>
     </div>
+  );
+}
+
+function Row({ title, movies }: { title: string; movies: Movie[] }) {
+  return (
+    <section>
+      <h2 className="text-xl sm:text-2xl font-bold mb-3">{title}</h2>
+      <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+        {movies.map((m) => (
+          <PosterCard key={m.id} movie={m} />
+        ))}
+      </div>
+    </section>
   );
 }
