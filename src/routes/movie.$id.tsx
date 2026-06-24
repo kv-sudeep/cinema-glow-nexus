@@ -188,17 +188,26 @@ function Player({ url, onClose, title }: { url: string; onClose: () => void; tit
     if (!v) return;
     if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; return; }
     let hls: { destroy: () => void } | null = null;
-    import("https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" as string)
-      .then(() => {
-        const Hls = (window as unknown as { Hls?: { isSupported: () => boolean; new (): { loadSource: (u: string) => void; attachMedia: (v: HTMLVideoElement) => void; destroy: () => void } } }).Hls;
-        if (Hls && Hls.isSupported()) {
-          const inst = new Hls();
-          inst.loadSource(url);
-          inst.attachMedia(v);
-          hls = inst;
-        }
-      })
-      .catch(() => { v.src = url; });
+    const loadHls = () => new Promise<void>((resolve, reject) => {
+      const w = window as unknown as { Hls?: unknown };
+      if (w.Hls) return resolve();
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js";
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("hls load failed"));
+      document.head.appendChild(s);
+    });
+    loadHls().then(() => {
+      const Hls = (window as unknown as { Hls?: { isSupported: () => boolean; new (): { loadSource: (u: string) => void; attachMedia: (v: HTMLVideoElement) => void; destroy: () => void } } }).Hls;
+      if (Hls && Hls.isSupported()) {
+        const inst = new Hls();
+        inst.loadSource(url);
+        inst.attachMedia(v);
+        hls = inst;
+      } else {
+        v.src = url;
+      }
+    }).catch(() => { v.src = url; });
     return () => { hls?.destroy(); };
   }, [url, isHls]);
 
