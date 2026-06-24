@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 import { MovieCard } from "@/components/MovieCard";
 import { CategoryStrip } from "@/components/CategoryStrip";
-import { listMovies, ratingsByMovie, listViewHistory } from "@/lib/movies";
+import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/browse")({
