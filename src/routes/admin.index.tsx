@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, Plus, Trash2, Upload, X } from "lucide-react";
 import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAsset } from "@/lib/movies";
 import { toast } from "sonner";
+import { CategoryStrip } from "@/components/CategoryStrip";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminLibrary,
@@ -28,11 +29,20 @@ function AdminLibrary() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
 
   const movies = q.data ?? [];
-  const filtered = useMemo(() =>
-    movies.filter((m) => (m.title + " " + (m.genre || "")).toLowerCase().includes(search.toLowerCase())),
-    [movies, search]
+  const extraCats = useMemo(
+    () => Array.from(new Set(movies.map((m) => m.genre).filter(Boolean) as string[])),
+    [movies]
+  );
+  const filtered = useMemo(
+    () => movies.filter((m) => {
+      const matchSearch = (m.title + " " + (m.genre || "")).toLowerCase().includes(search.toLowerCase());
+      const matchCat = !category || (m.genre || "").toLowerCase() === category.toLowerCase();
+      return matchSearch && matchCat;
+    }),
+    [movies, search, category]
   );
 
   function startCreate() { setEditing(null); setOpen(true); }
@@ -45,6 +55,7 @@ function AdminLibrary() {
 
   return (
     <div className="space-y-6">
+      <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
       <div className="flex flex-wrap gap-3 items-center">
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search library…" className="flex-1 min-w-[200px] px-4 py-2.5 rounded-full bg-white/5 border border-white/10 focus:outline-none focus:border-primary/60" />
         <button onClick={startCreate} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold">
@@ -163,7 +174,7 @@ function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onC
         <Field label="Description"><textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="inp resize-none" /></Field>
 
         <div className="grid sm:grid-cols-3 gap-3">
-          <Field label="Genre"><input value={form.genre} onChange={(e) => set("genre", e.target.value)} className="inp" placeholder="Sci-Fi" /></Field>
+          <Field label="Category / Language"><input value={form.genre} onChange={(e) => set("genre", e.target.value)} className="inp" placeholder="Kannada, Telugu, Hindi, Action…" list="cat-suggest" /></Field>
           <Field label="Year"><input value={form.year} onChange={(e) => set("year", e.target.value)} type="number" className="inp" /></Field>
           <Field label="Duration (min)"><input value={form.duration_min} onChange={(e) => set("duration_min", e.target.value)} type="number" className="inp" /></Field>
         </div>
