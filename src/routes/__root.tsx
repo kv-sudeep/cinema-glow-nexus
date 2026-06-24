@@ -77,14 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Cineverse — Stream Movies" },
+      { name: "description", content: "Cineverse: a private cinematic streaming hub with adaptive playback, watchlists, ratings and admin uploads." },
+      { name: "theme-color", content: "#1a0b2e" },
+      { property: "og:title", content: "Cineverse" },
+      { property: "og:description", content: "A private cinematic streaming hub." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
