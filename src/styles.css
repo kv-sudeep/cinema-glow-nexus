@@ -45,11 +45,11 @@
 
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.13 0.02 285);
+  --background: oklch(0.10 0.025 265);
   --foreground: oklch(0.97 0.01 280);
-  --card: oklch(0.18 0.03 285);
+  --card: oklch(0.16 0.03 265);
   --card-foreground: oklch(0.97 0.01 280);
-  --popover: oklch(0.18 0.03 285);
+  --popover: oklch(0.16 0.03 265);
   --popover-foreground: oklch(0.97 0.01 280);
   --primary: oklch(0.68 0.24 320);
   --primary-foreground: oklch(0.99 0 0);
@@ -83,8 +83,7 @@
   html, body { background: var(--color-background); color: var(--color-foreground); }
   body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.55 0.27 295 / 0.35), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.72 0.2 220 / 0.22), transparent 60%);
+      radial-gradient(ellipse 60% 30% at 50% 0%, oklch(0.22 0.06 280 / 0.5), transparent 70%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -165,3 +164,19 @@
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
+
+.row-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+.row-scroll::-webkit-scrollbar { display: none; }
+.row-scroll > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }

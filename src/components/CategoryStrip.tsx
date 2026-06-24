@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { TrendingUp } from "lucide-react";
 
 export const DEFAULT_CATEGORIES = [
   "Kannada",
@@ -32,22 +33,31 @@ export function CategoryStrip({
     return Array.from(set);
   }, [extra]);
 
-  const loop = [...cats, ...cats];
-
   return (
-    <div className="relative marquee-mask overflow-hidden py-1">
-      <div className="marquee-track gap-3">
-        {loop.map((c, i) => {
+    <div className="hide-scrollbar overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-2 py-1 w-max">
+        <button
+          onClick={() => onSelect(null)}
+          className={
+            "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition border " +
+            (active === null
+              ? "bg-white/5 border-white/30 text-foreground"
+              : "bg-transparent border-white/10 text-foreground/70 hover:text-foreground")
+          }
+        >
+          <TrendingUp className="h-3.5 w-3.5" /> Trending
+        </button>
+        {cats.map((c) => {
           const isActive = active === c;
           return (
             <button
-              key={c + i}
+              key={c}
               onClick={() => onSelect(isActive ? null : c)}
               className={
-                "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition border " +
+                "shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition border " +
                 (isActive
-                  ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-[0_0_20px_oklch(0.68_0.24_320/0.5)]"
-                  : "glass border-white/10 text-foreground/80 hover:text-foreground hover:border-primary/40")
+                  ? "bg-white/5 border-white/30 text-foreground"
+                  : "bg-transparent border-white/10 text-foreground/70 hover:text-foreground hover:border-white/20")
               }
             >
               {c}
@@ -55,14 +65,6 @@ export function CategoryStrip({
           );
         })}
       </div>
-      {active && (
-        <button
-          onClick={() => onSelect(null)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-xs px-3 py-1 rounded-full bg-background/80 border border-white/10 hover:border-primary/50"
-        >
-          Clear
-        </button>
-      )}
     </div>
   );
 }
