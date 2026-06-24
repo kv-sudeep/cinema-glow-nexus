@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 import { MovieCard } from "@/components/MovieCard";
+import { CategoryStrip } from "@/components/CategoryStrip";
 import { listMovies, ratingsByMovie, listViewHistory } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
 
@@ -16,9 +17,7 @@ function Browse() {
   useEffect(() => { if (!getRole()) nav({ to: "/" }); }, [nav]);
 
   const [q, setQ] = useState("");
-  const [genre, setGenre] = useState<string>("all");
-  const [year, setYear] = useState<string>("all");
-  const [sort, setSort] = useState<"new" | "title" | "rating" | "views">("new");
+  const [category, setCategory] = useState<string | null>(null);
 
   const moviesQ = useQuery({ queryKey: ["movies"], queryFn: listMovies });
   const ratingsQ = useQuery({ queryKey: ["ratings"], queryFn: ratingsByMovie });
@@ -27,23 +26,34 @@ function Browse() {
   const movies = moviesQ.data ?? [];
   const ratings = ratingsQ.data ?? {};
 
-  const genres = useMemo(() => Array.from(new Set(movies.map((m) => m.genre).filter(Boolean) as string[])).sort(), [movies]);
-  const years = useMemo(() => Array.from(new Set(movies.map((m) => m.year).filter(Boolean) as number[])).sort((a, b) => b - a), [movies]);
+  const extraCats = useMemo(
+    () => Array.from(new Set(movies.map((m) => m.genre).filter(Boolean) as string[])),
+    [movies]
+  );
 
   const filtered = useMemo(() => {
-    let arr = movies.filter((m) =>
+    const arr = movies.filter((m) =>
       (q ? (m.title + " " + (m.description || "")).toLowerCase().includes(q.toLowerCase()) : true) &&
-      (genre === "all" || m.genre === genre) &&
-      (year === "all" || String(m.year) === year)
+      (!category || (m.genre || "").toLowerCase() === category.toLowerCase())
     );
-    arr = [...arr].sort((a, b) => {
-      if (sort === "title") return a.title.localeCompare(b.title);
-      if (sort === "rating") return (ratings[b.id] ?? 0) - (ratings[a.id] ?? 0);
-      if (sort === "views") return b.views - a.views;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
     return arr;
-  }, [movies, q, genre, year, sort, ratings]);
+  }, [movies, q, category]);
+
+  const newMovies = useMemo(() => [...movies]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10), [movies]);
+
+  const continueWatching = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Movie[] = [];
+    for (const h of (histQ.data ?? []) as { movie_id: string; movies?: Movie | null }[]) {
+      if (!h.movies || seen.has(h.movie_id)) continue;
+      seen.add(h.movie_id);
+      out.push(h.movies);
+      if (out.length >= 10) break;
+    }
+    return out;
+  }, [histQ.data]);
 
   // recommendations: same genre as recently viewed
   const recoGenres = useMemo(() => {
@@ -64,6 +74,9 @@ function Browse() {
   return (
     <div className="min-h-screen">
       <AppNav />
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 pt-4">
+        <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
+      </div>
       {featured && (
         <section className="relative">
           <div className="absolute inset-0 -z-10">
@@ -91,12 +104,31 @@ function Browse() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 space-y-10">
-        <div className="grid sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
+        <div className="flex gap-3 items-center">
           <SearchPill value={q} onChange={setQ} />
-          <Select value={genre} onChange={setGenre} options={[["all", "All genres"], ...genres.map((g) => [g, g] as [string, string])]} />
-          <Select value={year} onChange={setYear} options={[["all", "All years"], ...years.map((y) => [String(y), String(y)] as [string, string])]} />
-          <Select value={sort} onChange={(v) => setSort(v as typeof sort)} options={[["new", "Newest"], ["title", "A–Z"], ["rating", "Top rated"], ["views", "Most watched"]]} />
         </div>
+
+        {continueWatching.length > 0 && (
+          <section>
+            <h2 className="text-xl font-bold mb-4">Continue watching</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {continueWatching.map((m) => (
+                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {newMovies.length > 0 && (
+          <section>
+            <h2 className="text-xl font-bold mb-4">New movies</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {newMovies.map((m) => (
+                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {recommendations.length > 0 && (
           <section>
@@ -110,7 +142,10 @@ function Browse() {
         )}
 
         <section>
-          <h2 className="text-xl font-bold mb-4">All movies <span className="text-muted-foreground text-sm font-normal">({filtered.length})</span></h2>
+          <h2 className="text-xl font-bold mb-4">
+            {category ? `${category} movies` : "All movies"}{" "}
+            <span className="text-muted-foreground text-sm font-normal">({filtered.length})</span>
+          </h2>
           {moviesQ.isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -134,19 +169,5 @@ function Browse() {
         </section>
       </main>
     </div>
-  );
-}
-
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 focus:border-primary/60 focus:outline-none text-sm"
-    >
-      {options.map(([v, l]) => (
-        <option key={v} value={v} className="bg-background">{l}</option>
-      ))}
-    </select>
   );
 }
