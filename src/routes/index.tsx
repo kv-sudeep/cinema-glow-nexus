@@ -1,7 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Film, Lock, Sparkles } from "lucide-react";
-import { checkPassword, setRole, getRole } from "@/lib/auth";
+import { Film, Lock, Sparkles, AlertCircle, ShieldAlert } from "lucide-react";
+import {
+  checkPassword,
+  setRole,
+  getRole,
+  getLockRemainingMs,
+  getAttempts,
+  recordFailedAttempt,
+  resetAttempts,
+  AUTH_LIMITS,
+} from "@/lib/auth";
 import heroBg from "@/assets/hero-bg.jpg";
 
 export const Route = createFileRoute("/")({
@@ -19,23 +28,86 @@ function LoginPage() {
   const [code, setCode] = useState("");
   const [shake, setShake] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
+  const [lockMs, setLockMs] = useState(0);
+  const [attempts, setAttemptsState] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (getRole()) nav({ to: "/browse" });
     inputRef.current?.focus();
+    setLockMs(getLockRemainingMs());
+    setAttemptsState(getAttempts());
   }, [nav]);
+
+  // Tick down lockout countdown
+  useEffect(() => {
+    if (lockMs <= 0) return;
+    const id = window.setInterval(() => {
+      const left = getLockRemainingMs();
+      setLockMs(left);
+      if (left <= 0) {
+        resetAttempts();
+        setAttemptsState(0);
+        setErr(null);
+        window.clearInterval(id);
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [lockMs]);
+
+  function triggerShake() {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const role = checkPassword(code.trim());
-    if (!role) {
-      setErr("Invalid access code");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+
+    const stillLocked = getLockRemainingMs();
+    if (stillLocked > 0) {
+      setLockMs(stillLocked);
+      setErr(`Too many failed attempts. Try again in ${Math.ceil(stillLocked / 1000)}s.`);
+      triggerShake();
       return;
     }
-    setRole(role);
+
+    const trimmed = code.trim();
+    if (!trimmed) {
+      setErr("Please enter your access code.");
+      triggerShake();
+      return;
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      setErr("Access codes are digits only.");
+      triggerShake();
+      return;
+    }
+    if (trimmed.length < 4) {
+      setErr("Access code must be at least 4 digits.");
+      triggerShake();
+      return;
+    }
+
+    const role = checkPassword(trimmed);
+    if (!role) {
+      const { attempts: n, lockedMs } = recordFailedAttempt();
+      setAttemptsState(n);
+      if (lockedMs > 0) {
+        setLockMs(lockedMs);
+        setErr(`Account locked after ${AUTH_LIMITS.MAX_ATTEMPTS} failed attempts. Try again in ${Math.ceil(lockedMs / 1000)}s.`);
+      } else {
+        const left = AUTH_LIMITS.MAX_ATTEMPTS - n;
+        setErr(`Incorrect access code. ${left} attempt${left === 1 ? "" : "s"} remaining.`);
+      }
+      triggerShake();
+      setCode("");
+      return;
+    }
+
+    resetAttempts();
+    setAttemptsState(0);
+    setRole(role, remember);
     nav({ to: "/browse" });
   }
 
@@ -82,16 +154,53 @@ function LoginPage() {
                 autoComplete="off"
                 value={code}
                 onChange={(e) => { setCode(e.target.value); setErr(null); }}
+                disabled={lockMs > 0}
                 placeholder="•   •   •   •"
-                className="w-full pl-11 pr-4 py-4 text-center tracking-[0.4em] text-lg rounded-2xl bg-white/5 border border-white/10 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/25 transition"
+                className="w-full pl-11 pr-4 py-4 text-center tracking-[0.4em] text-lg rounded-2xl bg-white/5 border border-white/10 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
-            {err && <p className="text-sm text-destructive text-center">{err}</p>}
+
+            <label className="flex items-center justify-between gap-2 px-1 text-sm text-muted-foreground select-none cursor-pointer">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[oklch(0.68_0.24_320)]"
+                />
+                Remember me for 30 days
+              </span>
+              {attempts > 0 && lockMs <= 0 && (
+                <span className="text-xs text-amber-400/80">{attempts}/{AUTH_LIMITS.MAX_ATTEMPTS} tries</span>
+              )}
+            </label>
+
+            {err && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className={
+                  "flex items-start gap-2 rounded-xl border px-3 py-2 text-sm " +
+                  (lockMs > 0
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                    : "border-destructive/40 bg-destructive/10 text-destructive")
+                }
+              >
+                {lockMs > 0 ? (
+                  <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                )}
+                <span>{err}</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl font-semibold text-primary-foreground bg-gradient-to-r from-primary via-fuchsia-500 to-accent shadow-[0_0_30px_oklch(0.68_0.24_320/0.5)] hover:shadow-[0_0_50px_oklch(0.68_0.24_320/0.7)] transition active:scale-[0.98]"
+              disabled={lockMs > 0}
+              className="w-full py-3.5 rounded-2xl font-semibold text-primary-foreground bg-gradient-to-r from-primary via-fuchsia-500 to-accent shadow-[0_0_30px_oklch(0.68_0.24_320/0.5)] hover:shadow-[0_0_50px_oklch(0.68_0.24_320/0.7)] transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_0_30px_oklch(0.68_0.24_320/0.5)]"
             >
-              Enter Cineverse
+              {lockMs > 0 ? `Locked — ${Math.ceil(lockMs / 1000)}s` : "Enter Cineverse"}
             </button>
           </form>
 
