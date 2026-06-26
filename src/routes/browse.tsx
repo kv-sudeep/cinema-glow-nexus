@@ -5,6 +5,8 @@ import { AppNav, SearchPill } from "@/components/AppNav";
 import { MovieCard } from "@/components/MovieCard";
 import { HeroBanner, PosterCard } from "@/components/HeroBanner";
 import { CategoryStrip } from "@/components/CategoryStrip";
+import { CategoryBanners } from "@/components/CategoryBanners";
+import { LibraryStatus } from "@/components/LibraryStatus";
 import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
 
@@ -80,11 +82,14 @@ function Browse() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-6 space-y-8">
         <SearchPill value={q} onChange={setQ} />
+        <LibraryStatus />
 
         <div>
           <h2 className="text-xl sm:text-2xl font-bold mb-3">Trending in</h2>
           <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
         </div>
+
+        <CategoryBanners onSelect={setCategory} />
 
         {continueWatching.length > 0 && (
           <Row title="Continue Watching" movies={continueWatching} />

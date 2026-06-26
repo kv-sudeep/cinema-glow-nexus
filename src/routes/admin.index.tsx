@@ -6,6 +6,7 @@ import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAs
 import { toast } from "sonner";
 import { CategoryStrip } from "@/components/CategoryStrip";
 import { DEFAULT_CATEGORIES } from "@/components/CategoryStrip";
+import { LibraryStatus } from "@/components/LibraryStatus";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminLibrary,
@@ -56,6 +57,7 @@ function AdminLibrary() {
 
   return (
     <div className="space-y-6">
+      <LibraryStatus />
       <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
       <div className="flex flex-wrap gap-3 items-center">
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search library…" className="flex-1 min-w-[200px] px-4 py-2.5 rounded-full bg-white/5 border border-white/10 focus:outline-none focus:border-primary/60" />
