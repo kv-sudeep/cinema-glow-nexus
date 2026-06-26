@@ -5,7 +5,7 @@ import { AppNav, SearchPill } from "@/components/AppNav";
 import { MovieCard } from "@/components/MovieCard";
 import { HeroBanner, PosterCard } from "@/components/HeroBanner";
 import { CategoryStrip } from "@/components/CategoryStrip";
-import { CategoryBanners } from "@/components/CategoryBanners";
+import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
 import { LibraryStatus } from "@/components/LibraryStatus";
 import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
@@ -89,8 +89,6 @@ function Browse() {
           <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
         </div>
 
-        <CategoryBanners onSelect={setCategory} />
-
         {continueWatching.length > 0 && (
           <Row title="Continue Watching" movies={continueWatching} />
         )}
@@ -105,6 +103,23 @@ function Browse() {
             movies={recommendations}
           />
         )}
+
+        {CATEGORY_BANNERS.map((c) => {
+          const items = movies.filter(
+            (m) => (m.genre || "").toLowerCase() === c.name.toLowerCase()
+          );
+          if (items.length === 0) return null;
+          return (
+            <section key={c.name}>
+              <CategoryBannerHeader name={c.name} count={items.length} onSelect={setCategory} />
+              <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+                {items.map((m) => (
+                  <PosterCard key={m.id} movie={m} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
 
         <section>
           <h2 className="text-xl font-bold mb-3">
