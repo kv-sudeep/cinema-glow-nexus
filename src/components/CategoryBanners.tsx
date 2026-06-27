@@ -1,33 +1,11 @@
 import kannada from "@/assets/cat/kannada.jpg";
 import telugu from "@/assets/cat/telugu.jpg";
 import hindi from "@/assets/cat/hindi.jpg";
-import tamil from "@/assets/cat/tamil.jpg";
-import malayalam from "@/assets/cat/malayalam.jpg";
-import english from "@/assets/cat/english.jpg";
-import action from "@/assets/cat/action.jpg";
-import comedy from "@/assets/cat/comedy.jpg";
-import drama from "@/assets/cat/drama.jpg";
-import thriller from "@/assets/cat/thriller.jpg";
-import romance from "@/assets/cat/romance.jpg";
-import scifi from "@/assets/cat/sci-fi.jpg";
-import horror from "@/assets/cat/horror.jpg";
-import animation from "@/assets/cat/animation.jpg";
 
 export const CATEGORY_BANNERS: { name: string; img: string }[] = [
   { name: "Kannada", img: kannada },
   { name: "Telugu", img: telugu },
   { name: "Hindi", img: hindi },
-  { name: "Tamil", img: tamil },
-  { name: "Malayalam", img: malayalam },
-  { name: "English", img: english },
-  { name: "Action", img: action },
-  { name: "Comedy", img: comedy },
-  { name: "Drama", img: drama },
-  { name: "Thriller", img: thriller },
-  { name: "Romance", img: romance },
-  { name: "Sci-Fi", img: scifi },
-  { name: "Horror", img: horror },
-  { name: "Animation", img: animation },
 ];
 
 export const CATEGORY_BANNER_MAP: Record<string, string> = Object.fromEntries(
