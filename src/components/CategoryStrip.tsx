@@ -5,17 +5,6 @@ export const DEFAULT_CATEGORIES = [
   "Kannada",
   "Telugu",
   "Hindi",
-  "Tamil",
-  "Malayalam",
-  "English",
-  "Action",
-  "Comedy",
-  "Drama",
-  "Thriller",
-  "Romance",
-  "Sci-Fi",
-  "Horror",
-  "Animation",
 ];
 
 export function CategoryStrip({
