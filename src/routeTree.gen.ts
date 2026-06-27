@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as ApiStreamIdRouteImport } from './routes/api/stream.$id'
 
 const WatchlistRoute = WatchlistRouteImport.update({
   id: '/watchlist',
@@ -52,6 +53,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiStreamIdRoute = ApiStreamIdRouteImport.update({
+  id: '/api/stream/$id',
+  path: '/api/stream/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/stream/$id': typeof ApiStreamIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
   '/admin': typeof AdminIndexRoute
+  '/api/stream/$id': typeof ApiStreamIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/stream/$id': typeof ApiStreamIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/movie/$id'
     | '/admin/'
+    | '/api/stream/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/movie/$id'
     | '/admin'
+    | '/api/stream/$id'
   id:
     | '__root__'
     | '/'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/movie/$id'
     | '/admin/'
+    | '/api/stream/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   WatchlistRoute: typeof WatchlistRoute
   MovieIdRoute: typeof MovieIdRoute
+  ApiStreamIdRoute: typeof ApiStreamIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/stream/$id': {
+      id: '/api/stream/$id'
+      path: '/api/stream/$id'
+      fullPath: '/api/stream/$id'
+      preLoaderRoute: typeof ApiStreamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -189,17 +209,8 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   WatchlistRoute: WatchlistRoute,
   MovieIdRoute: MovieIdRoute,
+  ApiStreamIdRoute: ApiStreamIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

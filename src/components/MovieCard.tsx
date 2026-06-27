@@ -9,7 +9,7 @@ export function MovieCard({ movie, avgRating }: { movie: Movie; avgRating?: numb
       params={{ id: movie.id }}
       className="group block tilt-3d"
     >
-      <div className="tilt-3d-inner glow-card overflow-hidden rounded-2xl">
+      <div className="tilt-3d-inner glow-card red-glow overflow-hidden rounded-2xl">
         <div className="relative aspect-[2/3] overflow-hidden">
           {movie.poster_url ? (
             <img
