@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, Play, Share2, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
 import { AppNav } from "@/components/AppNav";
@@ -28,6 +28,7 @@ function MoviePage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
+  const [dlOpen, setDlOpen] = useState(false);
 
   const m = movieQ.data;
   const avg = useMemo(() => {
@@ -123,9 +124,9 @@ function MoviePage() {
                   {wlQ.data ? "On list" : "Watchlist"}
                 </button>
                 {m.video_url && (
-                  <a href={m.video_url} download className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
+                  <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
                     <Download className="h-4 w-4" /> Download
-                  </a>
+                  </button>
                 )}
                 <button onClick={onShare} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
                   <Share2 className="h-4 w-4" /> Share
@@ -135,7 +136,21 @@ function MoviePage() {
           </div>
 
           {playing && (
-            <Player url={playing === "trailer" ? m.trailer_url! : m.video_url!} onClose={() => setPlaying(null)} title={m.title} />
+            <Player
+              url={playing === "trailer" ? m.trailer_url! : `/api/stream/${m.id}`}
+              rawUrl={playing === "trailer" ? m.trailer_url! : m.video_url!}
+              onClose={() => setPlaying(null)}
+              title={m.title}
+            />
+          )}
+
+          {dlOpen && m.video_url && (
+            <DownloadDialog
+              title={m.title}
+              streamUrl={`/api/stream/${m.id}`}
+              rawUrl={m.video_url}
+              onClose={() => setDlOpen(false)}
+            />
           )}
 
           <section className="mt-12 grid md:grid-cols-[1fr_360px] gap-8">
@@ -177,10 +192,20 @@ function MoviePage() {
   );
 }
 
-function Player({ url, onClose, title }: { url: string; onClose: () => void; title: string }) {
-  const isHls = /\.m3u8(\?|$)/i.test(url);
-  const isDash = /\.mpd(\?|$)/i.test(url);
-  const isYouTube = /youtu\.be|youtube\.com/.test(url);
+function Player({ url, rawUrl, onClose, title }: { url: string; rawUrl: string; onClose: () => void; title: string }) {
+  const probe = rawUrl || url;
+  const isHls = /\.m3u8(\?|$)/i.test(probe);
+  const isDash = /\.mpd(\?|$)/i.test(probe);
+  const isYouTube = /youtu\.be|youtube\.com/.test(probe);
+  const [theater, setTheater] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  async function toggleFullscreen() {
+    const el = wrapRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await el.requestFullscreen();
+  }
 
   useEffect(() => {
     if (!isHls) return;
@@ -212,22 +237,114 @@ function Player({ url, onClose, title }: { url: string; onClose: () => void; tit
   }, [url, isHls]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden bg-black shadow-[0_30px_80px_oklch(0_0_0/0.8)]" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full glass text-sm">Close</button>
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+      <div
+        ref={wrapRef}
+        className={
+          "relative bg-black rounded-2xl overflow-hidden shadow-[0_30px_80px_oklch(0_0_0/0.8)] " +
+          (theater ? "w-full h-full max-w-none aspect-auto" : "w-full max-w-5xl aspect-video")
+        }
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1.5">
+            {theater ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {theater ? "Exit theater" : "Theater"}
+          </button>
+          <button onClick={toggleFullscreen} title="Fullscreen" className="px-3 py-1.5 rounded-full glass text-xs">Fullscreen</button>
+          <button onClick={onClose} className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1"><X className="h-3.5 w-3.5" /> Close</button>
+        </div>
         {isYouTube ? (
           <iframe
-            src={toYouTubeEmbed(url)}
+            src={toYouTubeEmbed(probe)}
             title={title}
             allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
             className="h-full w-full"
           />
-        ) : isDash ? (
-          <video id="cv-player" src={url} controls autoPlay className="h-full w-full" />
         ) : (
-          <video id="cv-player" src={isHls ? undefined : url} controls autoPlay className="h-full w-full" />
+          <video
+            id="cv-player"
+            src={isHls ? undefined : url}
+            controls
+            controlsList="nodownload"
+            autoPlay
+            playsInline
+            preload="metadata"
+            className="h-full w-full bg-black"
+          />
         )}
+      </div>
+    </div>
+  );
+}
+
+function DownloadDialog({ title, streamUrl, rawUrl, onClose }: { title: string; streamUrl: string; rawUrl: string; onClose: () => void }) {
+  const [size, setSize] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const fileName = useMemo(() => {
+    const safe = title.replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "") || "movie";
+    const m = rawUrl.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
+    const ext = m ? m[1].toLowerCase() : "mkv";
+    return `${safe}.${ext}`;
+  }, [title, rawUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(streamUrl, { method: "HEAD" });
+        const len = r.headers.get("content-length");
+        if (!cancelled && len) setSize(parseInt(len, 10));
+      } catch (e) {
+        if (!cancelled) setErr("Could not read file size");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [streamUrl]);
+
+  function fmt(n: number) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+    return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  }
+
+  function confirmDownload() {
+    const a = document.createElement("a");
+    a.href = streamUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="glass rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-bold text-lg mb-1">Download movie?</h3>
+        <p className="text-xs text-muted-foreground mb-4">The file will be saved to your device.</p>
+        <div className="space-y-2 text-sm mb-5">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">File name</span>
+            <span className="font-mono text-xs truncate max-w-[60%]" title={fileName}>{fileName}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Size</span>
+            <span>{size != null ? fmt(size) : err ?? "Calculating…"}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Format</span>
+            <span className="uppercase">{fileName.split(".").pop()}</span>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded-full glass text-sm hover:bg-white/10">Cancel</button>
+          <button onClick={confirmDownload} className="px-4 py-2 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-semibold inline-flex items-center gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Download
+          </button>
+        </div>
       </div>
     </div>
   );
