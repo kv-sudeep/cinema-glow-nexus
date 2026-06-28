@@ -142,6 +142,7 @@ function MoviePage() {
               rawUrl={playing === "trailer" ? m.trailer_url! : m.video_url!}
               onClose={() => setPlaying(null)}
               title={m.title}
+              movieId={playing === "video" ? m.id : undefined}
             />
           )}
 
