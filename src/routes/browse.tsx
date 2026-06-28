@@ -108,3 +108,16 @@ function Row({ title, movies }: { title: string; movies: Movie[] }) {
     </section>
   );
 }
+
+function LandscapeRow({ title, movies }: { title: string; movies: Movie[] }) {
+  return (
+    <section>
+      <h2 className="text-xl sm:text-2xl font-bold mb-3">{title}</h2>
+      <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+        {movies.map((m) => (
+          <LandscapeCard key={m.id} movie={m} />
+        ))}
+      </div>
+    </section>
+  );
+}
