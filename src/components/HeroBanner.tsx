@@ -85,3 +85,35 @@ export function PosterCard({ movie }: { movie: Movie }) {
     </Link>
   );
 }
+
+export function LandscapeCard({ movie }: { movie: Movie }) {
+  return (
+    <Link
+      to="/movie/$id"
+      params={{ id: movie.id }}
+      className="block w-[260px] sm:w-[320px] group"
+    >
+      <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-card border border-white/5">
+        {movie.poster_url ? (
+          <img
+            src={movie.poster_url}
+            alt={movie.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center">
+            <span className="text-3xl font-bold neon-text">{movie.title.slice(0, 1)}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="text-sm font-semibold line-clamp-1 drop-shadow">{movie.title}</h3>
+          {movie.genre && (
+            <p className="text-[11px] text-white/80 line-clamp-1">{movie.genre}</p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
