@@ -83,12 +83,6 @@ function Browse() {
           <Row title="New Movies" movies={newMovies} />
         )}
 
-        {recommendations.length > 0 && (
-          <Row
-            title={recoGenres.size > 0 ? "Recommended for you" : "Fresh picks"}
-            movies={recommendations}
-          />
-        )}
 
         {CATEGORY_BANNERS.map((c) => {
           const items = movies.filter(
