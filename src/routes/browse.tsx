@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 
-import { HeroBanner, PosterCard } from "@/components/HeroBanner";
+import { HeroBanner, PosterCard, LandscapeCard } from "@/components/HeroBanner";
 
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
 import { LibraryStatus } from "@/components/LibraryStatus";
@@ -30,10 +30,6 @@ function Browse() {
 
 
 
-  const newMovies = useMemo(() => [...movies]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10), [movies]);
-
   const continueWatching = useMemo(() => {
     const seen = new Set<string>();
     const out: Movie[] = [];
@@ -58,15 +54,9 @@ function Browse() {
         <SearchPill value={q} onChange={setQ} />
         <LibraryStatus />
 
-
         {continueWatching.length > 0 && (
-          <Row title="Continue Watching" movies={continueWatching} />
+          <LandscapeRow title="Continue Watching" movies={continueWatching} />
         )}
-
-        {newMovies.length > 0 && (
-          <Row title="New Movies" movies={newMovies} />
-        )}
-
 
         {CATEGORY_BANNERS.map((c) => {
           const items = movies.filter(
@@ -113,6 +103,19 @@ function Row({ title, movies }: { title: string; movies: Movie[] }) {
       <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
         {movies.map((m) => (
           <PosterCard key={m.id} movie={m} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LandscapeRow({ title, movies }: { title: string; movies: Movie[] }) {
+  return (
+    <section>
+      <h2 className="text-xl sm:text-2xl font-bold mb-3">{title}</h2>
+      <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+        {movies.map((m) => (
+          <LandscapeCard key={m.id} movie={m} />
         ))}
       </div>
     </section>
