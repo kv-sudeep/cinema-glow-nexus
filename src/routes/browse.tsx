@@ -58,20 +58,6 @@ function Browse() {
     return out;
   }, [histQ.data]);
 
-  // recommendations: same genre as recently viewed
-  const recoGenres = useMemo(() => {
-    const set = new Set<string>();
-    for (const h of histQ.data ?? []) {
-      const g = (h as { movies?: { genre?: string | null } }).movies?.genre;
-      if (g) set.add(g);
-    }
-    return set;
-  }, [histQ.data]);
-  const recommendations = useMemo(() => {
-    if (recoGenres.size === 0) return movies.slice(0, 6);
-    return movies.filter((m) => m.genre && recoGenres.has(m.genre)).slice(0, 8);
-  }, [movies, recoGenres]);
-
   const featured = movies[0];
 
   return (
