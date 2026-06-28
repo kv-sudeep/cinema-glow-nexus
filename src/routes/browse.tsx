@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 
-import { HeroBanner, PosterCard, LandscapeCard } from "@components/HeroBanner";
+import { HeroBanner, PosterCard, LandscapeCard } from "@/components/HeroBanner";
 
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
 import { LibraryStatus } from "@/components/LibraryStatus";
