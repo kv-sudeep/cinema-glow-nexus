@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppNav, SearchPill } from "@/components/AppNav";
+import { AppNav } from "@/components/AppNav";
 
 import { HeroBanner, PosterCard, LandscapeCard } from "@/components/HeroBanner";
 
@@ -28,7 +28,14 @@ function Browse() {
   const movies = moviesQ.data ?? [];
   const ratings = ratingsQ.data ?? {};
 
-
+  const query = q.trim().toLowerCase();
+  const searchResults = useMemo(() => {
+    if (!query) return [];
+    return movies.filter((m) =>
+      m.title.toLowerCase().includes(query) ||
+      (m.genre ?? "").toLowerCase().includes(query)
+    );
+  }, [movies, query]);
 
   const continueWatching = useMemo(() => {
     const seen = new Set<string>();
@@ -46,14 +53,32 @@ function Browse() {
 
   return (
     <div className="min-h-screen">
-      <AppNav />
+      <AppNav search={q} onSearch={setQ} />
 
-      {featured && <HeroBanner movie={featured} rating={ratings[featured.id] ?? null} />}
+      {!query && featured && <HeroBanner movie={featured} rating={ratings[featured.id] ?? null} />}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-6 space-y-8">
-        <SearchPill value={q} onChange={setQ} />
         <LibraryStatus />
 
+        {query ? (
+          <section>
+            <h2 className="text-lg font-bold mb-3">
+              Results for "{q}" <span className="text-muted-foreground font-normal">· {searchResults.length}</span>
+            </h2>
+            {searchResults.length === 0 ? (
+              <div className="py-10 glass rounded-2xl text-center text-sm text-muted-foreground">
+                No movies match your search.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                {searchResults.map((m) => (
+                  <PosterCard key={m.id} movie={m} />
+                ))}
+              </div>
+            )}
+          </section>
+        ) : (
+        <>
         {continueWatching.length > 0 && (
           <LandscapeRow title="Continue Watching" movies={continueWatching} />
         )}
@@ -90,7 +115,8 @@ function Browse() {
             </section>
           );
         })}
-
+        </>
+        )}
       </main>
     </div>
   );
