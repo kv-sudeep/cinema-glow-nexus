@@ -1,10 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Film, Bookmark, Shield, LogOut, Search } from "lucide-react";
+import { Film, Bookmark, Shield, LogOut, Search, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { clearRole, getRole, type Role } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
-export function AppNav() {
+export function AppNav({ search, onSearch }: { search?: string; onSearch?: (v: string) => void } = {}) {
   const navigate = useNavigate();
   const [role, setR] = useState<Role | null>(null);
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -18,7 +18,7 @@ export function AppNav() {
 
   return (
     <header className="sticky top-0 z-40 glass border-b border-white/5">
-      <div className="max-w-7xl mx-auto flex items-center gap-3 px-4 sm:px-6 py-3">
+      <div className="max-w-7xl mx-auto grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3">
         <Link to="/browse" className="flex items-center gap-2 mr-2">
           <div className="relative">
             <Film className="h-6 w-6 text-primary" />
@@ -26,20 +26,48 @@ export function AppNav() {
           </div>
           <span className="font-bold tracking-tight text-lg neon-text hidden sm:inline">CINEVERSE</span>
         </Link>
-        <nav className="flex items-center gap-1 ml-2">
-          <NavLink to="/browse" label="Browse" />
-          <NavLink to="/watchlist" label="Watchlist" icon={<Bookmark className="h-4 w-4" />} />
-          {role === "admin" && (
-            <NavLink to="/admin" label="Admin" icon={<Shield className="h-4 w-4" />} />
+        {onSearch ? (
+          <div className="relative min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={search ?? ""}
+              onChange={(e) => onSearch(e.target.value)}
+              placeholder="Search movies..."
+              className="w-full pl-9 pr-3 py-2 rounded-full bg-white/5 border border-white/10 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+            />
+          </div>
+        ) : (
+          <nav className="flex items-center gap-1 min-w-0 overflow-x-auto hide-scrollbar">
+            <NavLink to="/browse" label="Browse" />
+            <NavLink to="/watchlist" label="List" icon={<Bookmark className="h-4 w-4" />} />
+            <NavLink to="/profile" label="Me" icon={<User className="h-4 w-4" />} />
+            {role === "admin" && (
+              <NavLink to="/admin" label="Admin" icon={<Shield className="h-4 w-4" />} />
+            )}
+          </nav>
+        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {onSearch && (
+            <>
+              <Link to="/watchlist" aria-label="Watchlist" className="h-9 w-9 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5">
+                <Bookmark className="h-4 w-4" />
+              </Link>
+              <Link to="/profile" aria-label="Profile" className="h-9 w-9 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5">
+                <User className="h-4 w-4" />
+              </Link>
+              {role === "admin" && (
+                <Link to="/admin" aria-label="Admin" className="h-9 w-9 rounded-full grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5">
+                  <Shield className="h-4 w-4" />
+                </Link>
+              )}
+            </>
           )}
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
           {role && (
             <span className="hidden sm:inline-flex text-xs uppercase tracking-wider px-2 py-1 rounded-full border border-white/10 text-muted-foreground">
               {role}
             </span>
           )}
-          <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" onClick={logout} aria-label="Sign out" className="text-muted-foreground hover:text-foreground">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
