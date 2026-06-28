@@ -88,15 +88,31 @@ function Browse() {
           const items = movies.filter(
             (m) => (m.genre || "").toLowerCase() === c.name.toLowerCase()
           );
-          if (items.length === 0) return null;
+          const hasItems = items.length > 0;
           return (
             <section key={c.name}>
               <CategoryBannerHeader name={c.name} count={items.length} onSelect={setCategory} />
-              <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
-                {items.map((m) => (
-                  <PosterCard key={m.id} movie={m} />
-                ))}
-              </div>
+              {hasItems ? (
+                <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+                  {items.map((m) => (
+                    <PosterCard key={m.id} movie={m} />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 glass rounded-2xl text-center">
+                  <p className="text-muted-foreground text-sm">
+                    No {c.name} movies yet.
+                  </p>
+                  {getRole() === "admin" && (
+                    <button
+                      onClick={() => nav({ to: "/admin" })}
+                      className="mt-3 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm"
+                    >
+                      Add the first {c.name} movie
+                    </button>
+                  )}
+                </div>
+              )}
             </section>
           );
         })}
