@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
 
 import { HeroBanner, PosterCard } from "@/components/HeroBanner";
-import { CategoryStrip } from "@/components/CategoryStrip";
+
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
 import { LibraryStatus } from "@/components/LibraryStatus";
 import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
@@ -28,10 +28,6 @@ function Browse() {
   const movies = moviesQ.data ?? [];
   const ratings = ratingsQ.data ?? {};
 
-  const extraCats = useMemo(
-    () => Array.from(new Set(movies.map((m) => m.genre).filter(Boolean) as string[])),
-    [movies]
-  );
 
 
   const newMovies = useMemo(() => [...movies]
@@ -62,10 +58,6 @@ function Browse() {
         <SearchPill value={q} onChange={setQ} />
         <LibraryStatus />
 
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-3">Trending in</h2>
-          <CategoryStrip active={category} onSelect={setCategory} extra={extraCats} />
-        </div>
 
         {continueWatching.length > 0 && (
           <Row title="Continue Watching" movies={continueWatching} />
@@ -83,7 +75,7 @@ function Browse() {
           const hasItems = items.length > 0;
           return (
             <section key={c.name}>
-              <CategoryBannerHeader name={c.name} count={items.length} onSelect={setCategory} />
+              <CategoryBannerHeader name={c.name} count={items.length} />
               {hasItems ? (
                 <div className="row-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
                   {items.map((m) => (
