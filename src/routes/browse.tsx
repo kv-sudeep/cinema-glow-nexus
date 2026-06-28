@@ -20,7 +20,6 @@ function Browse() {
   useEffect(() => { if (!getRole()) nav({ to: "/" }); }, [nav]);
 
   const [q, setQ] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
 
   const moviesQ = useQuery({ queryKey: ["movies"], queryFn: listMovies });
   const ratingsQ = useQuery({ queryKey: ["ratings"], queryFn: ratingsByMovie });
