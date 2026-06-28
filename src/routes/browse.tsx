@@ -117,32 +117,6 @@ function Browse() {
           );
         })}
 
-        <section>
-          <h2 className="text-xl font-bold mb-3">
-            {category ? `${category} movies` : "All movies"}{" "}
-            <span className="text-muted-foreground text-sm font-normal">({filtered.length})</span>
-          </h2>
-          {moviesQ.isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] rounded-xl bg-card animate-pulse" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 glass rounded-2xl">
-              <p className="text-muted-foreground">No movies match your filters yet.</p>
-              {getRole() === "admin" && (
-                <button onClick={() => nav({ to: "/admin" })} className="mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground">Add the first movie</button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {filtered.map((m) => (
-                <MovieCard key={m.id} movie={m} avgRating={ratings[m.id] ?? null} />
-              ))}
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );
