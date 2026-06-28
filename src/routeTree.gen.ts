@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WatchlistRouteImport } from './routes/watchlist'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,6 +22,11 @@ import { Route as ApiStreamIdRouteImport } from './routes/api/stream.$id'
 const WatchlistRoute = WatchlistRouteImport.update({
   id: '/watchlist',
   path: '/watchlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/browse': typeof BrowseRoute
+  '/profile': typeof ProfileRoute
   '/watchlist': typeof WatchlistRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/profile': typeof ProfileRoute
   '/watchlist': typeof WatchlistRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/browse': typeof BrowseRoute
+  '/profile': typeof ProfileRoute
   '/watchlist': typeof WatchlistRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/movie/$id': typeof MovieIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/profile'
     | '/watchlist'
     | '/admin/analytics'
     | '/movie/$id'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/browse'
+    | '/profile'
     | '/watchlist'
     | '/admin/analytics'
     | '/movie/$id'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/browse'
+    | '/profile'
     | '/watchlist'
     | '/admin/analytics'
     | '/movie/$id'
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   BrowseRoute: typeof BrowseRoute
+  ProfileRoute: typeof ProfileRoute
   WatchlistRoute: typeof WatchlistRoute
   MovieIdRoute: typeof MovieIdRoute
   ApiStreamIdRoute: typeof ApiStreamIdRoute
@@ -137,6 +150,13 @@ declare module '@tanstack/react-router' {
       path: '/watchlist'
       fullPath: '/watchlist'
       preLoaderRoute: typeof WatchlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -207,6 +227,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   BrowseRoute: BrowseRoute,
+  ProfileRoute: ProfileRoute,
   WatchlistRoute: WatchlistRoute,
   MovieIdRoute: MovieIdRoute,
   ApiStreamIdRoute: ApiStreamIdRoute,
