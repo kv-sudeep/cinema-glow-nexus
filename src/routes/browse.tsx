@@ -34,13 +34,6 @@ function Browse() {
     [movies]
   );
 
-  const filtered = useMemo(() => {
-    const arr = movies.filter((m) =>
-      (q ? (m.title + " " + (m.description || "")).toLowerCase().includes(q.toLowerCase()) : true) &&
-      (!category || (m.genre || "").toLowerCase() === category.toLowerCase())
-    );
-    return arr;
-  }, [movies, q, category]);
 
   const newMovies = useMemo(() => [...movies]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
