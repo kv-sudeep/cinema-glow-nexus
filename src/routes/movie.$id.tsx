@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bookmark, BookmarkCheck, Download, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
+import { addDownload, getProgress, setProgress } from "@/lib/progress";
 import { AppNav } from "@/components/AppNav";
 import { toast } from "sonner";
 
@@ -146,6 +147,7 @@ function MoviePage() {
 
           {dlOpen && m.video_url && (
             <DownloadDialog
+              movieId={m.id}
               title={m.title}
               streamUrl={`/api/stream/${m.id}`}
               rawUrl={m.video_url}
@@ -192,7 +194,7 @@ function MoviePage() {
   );
 }
 
-function Player({ url, rawUrl, onClose, title }: { url: string; rawUrl: string; onClose: () => void; title: string }) {
+function Player({ url, rawUrl, onClose, title, movieId }: { url: string; rawUrl: string; onClose: () => void; title: string; movieId?: string }) {
   const probe = rawUrl || url;
   const isHls = /\.m3u8(\?|$)/i.test(probe);
   const isDash = /\.mpd(\?|$)/i.test(probe);
@@ -235,6 +237,29 @@ function Player({ url, rawUrl, onClose, title }: { url: string; rawUrl: string; 
     }).catch(() => { v.src = url; });
     return () => { hls?.destroy(); };
   }, [url, isHls]);
+
+  // Resume + persist progress (skipped for YouTube embeds)
+  useEffect(() => {
+    if (isYouTube || !movieId) return;
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (!v) return;
+    const saved = getProgress(movieId);
+    const onLoaded = () => {
+      if (saved && saved.t > 5 && saved.t < v.duration - 10) {
+        try { v.currentTime = saved.t; } catch {}
+      }
+    };
+    const onTime = () => {
+      if (v.duration > 0) setProgress(movieId, v.currentTime, v.duration);
+    };
+    v.addEventListener("loadedmetadata", onLoaded);
+    v.addEventListener("timeupdate", onTime);
+    return () => {
+      v.removeEventListener("loadedmetadata", onLoaded);
+      v.removeEventListener("timeupdate", onTime);
+      if (v.duration > 0) setProgress(movieId, v.currentTime, v.duration);
+    };
+  }, [movieId, isYouTube, url]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
@@ -279,7 +304,7 @@ function Player({ url, rawUrl, onClose, title }: { url: string; rawUrl: string; 
   );
 }
 
-function DownloadDialog({ title, streamUrl, rawUrl, onClose }: { title: string; streamUrl: string; rawUrl: string; onClose: () => void }) {
+function DownloadDialog({ movieId, title, streamUrl, rawUrl, onClose }: { movieId: string; title: string; streamUrl: string; rawUrl: string; onClose: () => void }) {
   const [size, setSize] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const fileName = useMemo(() => {
@@ -311,6 +336,7 @@ function DownloadDialog({ title, streamUrl, rawUrl, onClose }: { title: string; 
   }
 
   function confirmDownload() {
+    addDownload(movieId, fileName, size);
     const a = document.createElement("a");
     a.href = streamUrl;
     a.download = fileName;
