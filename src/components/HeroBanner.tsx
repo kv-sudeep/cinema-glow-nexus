@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Play, Plus } from "lucide-react";
 import type { Movie } from "@/lib/movies";
+import { getProgress } from "@/lib/progress";
 
 export function HeroBanner({ movie, rating }: { movie: Movie; rating?: number | null }) {
   return (
@@ -87,11 +88,13 @@ export function PosterCard({ movie }: { movie: Movie }) {
 }
 
 export function LandscapeCard({ movie }: { movie: Movie }) {
+  const p = getProgress(movie.id);
+  const pct = p && p.d > 0 ? Math.min(100, Math.max(2, (p.t / p.d) * 100)) : 0;
   return (
     <Link
       to="/movie/$id"
       params={{ id: movie.id }}
-      className="block w-[260px] sm:w-[320px] group"
+      className="block w-[78vw] max-w-[360px] sm:w-[300px] md:w-[340px] lg:w-[380px] group"
     >
       <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-card border border-white/5">
         {movie.poster_url ? (
@@ -113,6 +116,11 @@ export function LandscapeCard({ movie }: { movie: Movie }) {
             <p className="text-[11px] text-white/80 line-clamp-1">{movie.genre}</p>
           )}
         </div>
+        {pct > 0 && (
+          <div className="absolute left-0 right-0 bottom-0 h-1 bg-white/15">
+            <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+          </div>
+        )}
       </div>
     </Link>
   );
