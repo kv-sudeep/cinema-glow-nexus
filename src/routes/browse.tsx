@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav, SearchPill } from "@/components/AppNav";
-import { MovieCard } from "@/components/MovieCard";
+
 import { HeroBanner, PosterCard } from "@/components/HeroBanner";
 import { CategoryStrip } from "@/components/CategoryStrip";
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
