@@ -30,10 +30,6 @@ function Browse() {
 
 
 
-  const newMovies = useMemo(() => [...movies]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10), [movies]);
-
   const continueWatching = useMemo(() => {
     const seen = new Set<string>();
     const out: Movie[] = [];
@@ -58,15 +54,9 @@ function Browse() {
         <SearchPill value={q} onChange={setQ} />
         <LibraryStatus />
 
-
         {continueWatching.length > 0 && (
-          <Row title="Continue Watching" movies={continueWatching} />
+          <LandscapeRow title="Continue Watching" movies={continueWatching} />
         )}
-
-        {newMovies.length > 0 && (
-          <Row title="New Movies" movies={newMovies} />
-        )}
-
 
         {CATEGORY_BANNERS.map((c) => {
           const items = movies.filter(
