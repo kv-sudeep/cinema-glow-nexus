@@ -53,6 +53,7 @@ export function clearRole() {
   localStorage.removeItem(ROLE_KEY);
   localStorage.removeItem(EXPIRES_KEY);
   sessionStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem("mv_admin_code");
 }
 
 // ---- Attempt tracking / lockout ----
