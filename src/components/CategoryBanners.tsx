@@ -44,10 +44,10 @@ export function CategoryBannerHeader({
     </div>
   );
   return onSelect ? (
-    <button onClick={() => onSelect(name)} className="block w-full text-left mb-3">
+    <button onClick={() => onSelect(name)} className="block w-full max-w-3xl mx-auto text-left mb-3">
       {inner}
     </button>
   ) : (
-    <div className="mb-3">{inner}</div>
+    <div className="mb-3 max-w-3xl mx-auto">{inner}</div>
   );
 }
