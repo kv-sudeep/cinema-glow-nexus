@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, Upload, X } from "lucide-react";
+import { Edit, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAsset } from "@/lib/movies";
 import { toast } from "sonner";
 import { CategoryStrip } from "@/components/CategoryStrip";
