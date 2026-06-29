@@ -108,6 +108,11 @@ function LoginPage() {
     resetAttempts();
     setAttemptsState(0);
     setRole(role, remember);
+    if (role === "admin") {
+      try { localStorage.setItem("mv_admin_code", trimmed); } catch {}
+    } else {
+      try { localStorage.removeItem("mv_admin_code"); } catch {}
+    }
     nav({ to: "/browse" });
   }
 
