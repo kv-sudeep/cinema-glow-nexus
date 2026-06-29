@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
 
 import { HeroCarousel, PosterCard, LandscapeCard } from "@/components/HeroBanner";
