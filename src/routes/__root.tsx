@@ -81,10 +81,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Cineverse — Stream Movies" },
       { name: "description", content: "Cineverse: a private cinematic streaming hub with adaptive playback, watchlists, ratings and admin uploads." },
       { name: "theme-color", content: "#1a0b2e" },
-      { property: "og:title", content: "Cineverse" },
-      { property: "og:description", content: "A private cinematic streaming hub." },
+      { property: "og:title", content: "Cineverse — Stream Movies" },
+      { property: "og:description", content: "Cineverse: a private cinematic streaming hub with adaptive playback, watchlists, ratings and admin uploads." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Cineverse — Stream Movies" },
+      { name: "twitter:description", content: "Cineverse: a private cinematic streaming hub with adaptive playback, watchlists, ratings and admin uploads." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/bcdc6aae-607b-49d3-8cf2-07a3d33a9d0a" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/bcdc6aae-607b-49d3-8cf2-07a3d33a9d0a" },
     ],
     links: [
       {
