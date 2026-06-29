@@ -55,6 +55,15 @@ function AdminLibrary() {
     catch { toast.error("Delete failed"); }
   }
 
+  if (q.isLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading library…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       
