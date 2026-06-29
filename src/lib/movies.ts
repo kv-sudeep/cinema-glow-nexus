@@ -1,4 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  adminCreateMovie,
+  adminUpdateMovie,
+  adminDeleteMovie,
+  adminCreateSignedUpload,
+  incrementMovieViews,
+} from "./admin.functions";
+
+function getAdminCode(): string {
+  if (typeof window === "undefined") return "";
+  // The shared admin code is held in memory after sign-in; fall back to localStorage.
+  return localStorage.getItem("mv_admin_code") || "";
+}
 
 export type Movie = {
   id: string;
@@ -40,23 +53,20 @@ export async function getMovie(id: string): Promise<Movie | null> {
 }
 
 export async function createMovie(input: Partial<Movie>): Promise<Movie> {
-  const { data, error } = await supabase.from("movies").insert(input as never).select().single();
-  if (error) throw error;
+  const data = await adminCreateMovie({ data: { adminCode: getAdminCode(), input: input as never } });
   return data as Movie;
 }
 
 export async function updateMovie(id: string, input: Partial<Movie>): Promise<void> {
-  const { error } = await supabase.from("movies").update(input as never).eq("id", id);
-  if (error) throw error;
+  await adminUpdateMovie({ data: { adminCode: getAdminCode(), id, input: input as never } });
 }
 
 export async function deleteMovie(id: string): Promise<void> {
-  const { error } = await supabase.from("movies").delete().eq("id", id);
-  if (error) throw error;
+  await adminDeleteMovie({ data: { adminCode: getAdminCode(), id } });
 }
 
-export async function incrementViews(id: string, currentViews: number) {
-  await supabase.from("movies").update({ views: currentViews + 1 } as never).eq("id", id);
+export async function incrementViews(id: string, _currentViews: number) {
+  try { await incrementMovieViews({ data: { id } }); } catch { /* non-fatal */ }
 }
 
 export async function listReviews(movieId: string): Promise<Review[]> {
@@ -151,16 +161,20 @@ export async function analytics() {
 }
 
 export async function uploadAsset(file: File, prefix: string): Promise<string> {
-  const ext = file.name.split(".").pop() || "bin";
-  const key = `${prefix}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from("movie-assets").upload(key, file, {
-    contentType: file.type,
-    upsert: false,
+  const rawExt = (file.name.split(".").pop() || "bin").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) || "bin";
+  const allowed = ["poster", "video", "trailer"] as const;
+  if (!(allowed as readonly string[]).includes(prefix)) throw new Error("Invalid prefix");
+  const { uploadUrl, token, path, publicUrl } = await adminCreateSignedUpload({
+    data: { adminCode: getAdminCode(), prefix: prefix as typeof allowed[number], ext: rawExt },
   });
-  if (error) throw error;
-  const { data: signed, error: sErr } = await supabase.storage
+  // Upload directly to storage via signed URL.
+  const { error: upErr } = await supabase.storage
     .from("movie-assets")
-    .createSignedUrl(key, 60 * 60 * 24 * 365 * 10);
-  if (sErr) throw sErr;
-  return signed.signedUrl;
+    .uploadToSignedUrl(path, token, file, { contentType: file.type, upsert: false });
+  if (upErr) {
+    // Fallback: PUT to the signed upload URL
+    const res = await fetch(uploadUrl, { method: "PUT", headers: { "content-type": file.type }, body: file });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  }
+  return publicUrl;
 }
