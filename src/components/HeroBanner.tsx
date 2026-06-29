@@ -118,7 +118,7 @@ export function PosterCard({ movie }: { movie: Movie }) {
       params={{ id: movie.id }}
       className="block w-[140px] sm:w-[170px] group"
     >
-      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-card border border-white/5">
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-card border border-white/5 transition duration-500 group-hover:border-red-500/60 group-hover:shadow-[0_0_20px_oklch(0.65_0.26_25/0.5),0_0_50px_oklch(0.65_0.26_25/0.3)]">
         {movie.poster_url ? (
           <img
             src={movie.poster_url}
@@ -151,7 +151,7 @@ export function LandscapeCard({ movie }: { movie: Movie }) {
       params={{ id: movie.id }}
       className="block w-[78vw] max-w-[360px] sm:w-[300px] md:w-[340px] lg:w-[380px] group"
     >
-      <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-card border border-white/5">
+      <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-card border border-white/5 transition duration-500 group-hover:border-red-500/60 group-hover:shadow-[0_0_20px_oklch(0.65_0.26_25/0.5),0_0_50px_oklch(0.65_0.26_25/0.3)]">
         {movie.poster_url ? (
           <img
             src={movie.poster_url}
