@@ -6,7 +6,7 @@ import { AppNav } from "@/components/AppNav";
 import { HeroCarousel, PosterCard, LandscapeCard } from "@/components/HeroBanner";
 
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
-import { LibraryStatus } from "@/components/LibraryStatus";
+
 import { listMovies, ratingsByMovie, listViewHistory, type Movie } from "@/lib/movies";
 import { getDeviceId, getRole } from "@/lib/auth";
 
@@ -60,8 +60,6 @@ function Browse() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-6 space-y-8">
-        <LibraryStatus />
-
         {query ? (
           <section>
             <h2 className="text-lg font-bold mb-3">
