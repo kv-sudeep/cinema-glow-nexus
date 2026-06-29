@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
 
 import { HeroCarousel, PosterCard, LandscapeCard } from "@/components/HeroBanner";
@@ -24,6 +25,15 @@ function Browse() {
   const moviesQ = useQuery({ queryKey: ["movies"], queryFn: listMovies });
   const ratingsQ = useQuery({ queryKey: ["ratings"], queryFn: ratingsByMovie });
   const histQ = useQuery({ queryKey: ["history", getDeviceId()], queryFn: () => listViewHistory(getDeviceId(), 8) });
+
+  if (moviesQ.isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading movies…</p>
+      </div>
+    );
+  }
 
   const movies = moviesQ.data ?? [];
   const ratings = ratingsQ.data ?? {};
