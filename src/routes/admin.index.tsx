@@ -6,7 +6,7 @@ import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAs
 import { toast } from "sonner";
 import { CategoryStrip } from "@/components/CategoryStrip";
 import { DEFAULT_CATEGORIES } from "@/components/CategoryStrip";
-import { LibraryStatus } from "@/components/LibraryStatus";
+
 
 export const Route = createFileRoute("/admin/")({
   component: AdminLibrary,
