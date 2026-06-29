@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Play, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { Movie } from "@/lib/movies";
 import { getProgress } from "@/lib/progress";
 
@@ -52,6 +53,60 @@ export function HeroBanner({ movie, rating }: { movie: Movie; rating?: number | 
           <Play className="h-5 w-5 fill-current" />
         </Link>
       </div>
+    </div>
+  );
+}
+
+export function HeroCarousel({
+  movies,
+  ratings = {},
+  intervalMs = 5000,
+}: {
+  movies: Movie[];
+  ratings?: Record<string, number | null>;
+  intervalMs?: number;
+}) {
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused || movies.length <= 1) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % movies.length), intervalMs);
+    return () => clearInterval(t);
+  }, [paused, movies.length, intervalMs]);
+
+  useEffect(() => {
+    if (idx >= movies.length) setIdx(0);
+  }, [movies.length, idx]);
+
+  if (movies.length === 0) return null;
+  const current = movies[idx] ?? movies[0];
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+    >
+      <div key={current.id} className="animate-in fade-in duration-700">
+        <HeroBanner movie={current} rating={ratings[current.id] ?? null} />
+      </div>
+      {movies.length > 1 && (
+        <div className="absolute left-0 right-0 -bottom-1 flex justify-center gap-1.5 z-10">
+          {movies.map((m, i) => (
+            <button
+              key={m.id}
+              aria-label={`Show ${m.title}`}
+              onClick={() => setIdx(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

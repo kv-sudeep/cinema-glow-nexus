@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppNav } from "@/components/AppNav";
 
-import { HeroBanner, PosterCard, LandscapeCard } from "@/components/HeroBanner";
+import { HeroCarousel, PosterCard, LandscapeCard } from "@/components/HeroBanner";
 
 import { CATEGORY_BANNERS, CategoryBannerHeader } from "@/components/CategoryBanners";
 import { LibraryStatus } from "@/components/LibraryStatus";
@@ -49,13 +49,15 @@ function Browse() {
     return out;
   }, [histQ.data]);
 
-  const featured = movies[0];
+  const featured = useMemo(() => movies.slice(0, 6), [movies]);
 
   return (
     <div className="min-h-screen">
       <AppNav search={q} onSearch={setQ} />
 
-      {!query && featured && <HeroBanner movie={featured} rating={ratings[featured.id] ?? null} />}
+      {!query && featured.length > 0 && (
+        <HeroCarousel movies={featured} ratings={ratings} />
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-6 space-y-8">
         <LibraryStatus />
