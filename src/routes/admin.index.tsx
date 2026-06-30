@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { createMovie, deleteMovie, listMovies, type Movie, updateMovie, uploadAsset } from "@/lib/movies";
+import { adminGetMovieFull } from "@/lib/admin.functions";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { CategoryStrip } from "@/components/CategoryStrip";
 import { DEFAULT_CATEGORIES } from "@/components/CategoryStrip";
@@ -122,11 +124,22 @@ function AdminLibrary() {
 function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<FormState>(() => initial ? {
     title: initial.title, description: initial.description ?? "", poster_url: initial.poster_url ?? "",
-    trailer_url: initial.trailer_url ?? "", video_url: initial.video_url ?? "", genre: initial.genre ?? "",
+    trailer_url: initial.trailer_url ?? "", video_url: "", genre: initial.genre ?? "",
     year: initial.year ? String(initial.year) : "", duration_min: initial.duration_min ? String(initial.duration_min) : "",
   } : empty);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ poster?: number; video?: number; trailer?: number }>({});
+
+  useEffect(() => {
+    if (!initial) return;
+    const code = (typeof window !== "undefined" && localStorage.getItem("mv_admin_code")) || "";
+    adminGetMovieFull({ data: { adminCode: code, id: initial.id } })
+      .then((row) => {
+        const v = (row as { video_url?: string | null } | null)?.video_url ?? "";
+        if (v) setForm((f) => ({ ...f, video_url: v }));
+      })
+      .catch(() => {});
+  }, [initial]);
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) { setForm((f) => ({ ...f, [k]: v })); }
 
