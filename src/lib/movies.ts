@@ -19,7 +19,7 @@ export type Movie = {
   description: string | null;
   poster_url: string | null;
   trailer_url: string | null;
-  video_url: string | null;
+  has_video: boolean;
   genre: string | null;
   year: number | null;
   duration_min: number | null;
@@ -37,19 +37,31 @@ export type Review = {
   created_at: string;
 };
 
+const MOVIE_COLS =
+  "id, title, description, poster_url, trailer_url, genre, year, duration_min, views, created_at, has_video";
+
+function normalize(row: Record<string, unknown> | null): Movie | null {
+  if (!row) return null;
+  return { ...(row as unknown as Movie), has_video: !!(row as { has_video?: boolean }).has_video };
+}
+
 export async function listMovies(): Promise<Movie[]> {
   const { data, error } = await supabase
     .from("movies")
-    .select("*")
+    .select(MOVIE_COLS)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Movie[];
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => normalize(r)!) as Movie[];
 }
 
 export async function getMovie(id: string): Promise<Movie | null> {
-  const { data, error } = await supabase.from("movies").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("movies")
+    .select(MOVIE_COLS)
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
-  return (data as Movie) ?? null;
+  return normalize(data as Record<string, unknown> | null);
 }
 
 export async function createMovie(input: Partial<Movie>): Promise<Movie> {
@@ -100,10 +112,12 @@ export async function ratingsByMovie(): Promise<Record<string, number>> {
 export async function getWatchlist(deviceId: string) {
   const { data, error } = await supabase
     .from("watchlist")
-    .select("movie_id, movies(*)")
+    .select(`movie_id, movies(${MOVIE_COLS})`)
     .eq("device_id", deviceId);
   if (error) throw error;
-  return (data ?? []).map((r) => (r as { movies: Movie }).movies).filter(Boolean);
+  return (data ?? [])
+    .map((r) => normalize((r as { movies: Record<string, unknown> }).movies))
+    .filter(Boolean) as Movie[];
 }
 
 export async function isOnWatchlist(deviceId: string, movieId: string) {
@@ -133,12 +147,15 @@ export async function logView(deviceId: string, movieId: string) {
 export async function listViewHistory(deviceId: string, limit = 20) {
   const { data, error } = await supabase
     .from("view_history")
-    .select("movie_id, watched_at, movies(*)")
+    .select(`movie_id, watched_at, movies(${MOVIE_COLS})`)
     .eq("device_id", deviceId)
     .order("watched_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((r) => {
+    const row = r as { movie_id: string; watched_at: string; movies: Record<string, unknown> | null };
+    return { ...row, movies: normalize(row.movies) };
+  });
 }
 
 export async function analytics() {
