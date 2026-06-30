@@ -92,3 +92,46 @@ export const incrementMovieViews = createServerFn({ method: "POST" })
     await supabaseAdmin.from("movies").update({ views: current + 1 } as never).eq("id", data.id);
     return { ok: true };
   });
+
+function classify(url: string | null | undefined): {
+  kind: "youtube" | "hls" | "dash" | "video" | "none";
+  ext: string;
+} {
+  if (!url) return { kind: "none", ext: "" };
+  if (/youtu\.be|youtube\.com/.test(url)) return { kind: "youtube", ext: "" };
+  if (/\.m3u8(\?|$)/i.test(url)) return { kind: "hls", ext: "m3u8" };
+  if (/\.mpd(\?|$)/i.test(url)) return { kind: "dash", ext: "mpd" };
+  const m = url.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
+  return { kind: "video", ext: m ? m[1].toLowerCase() : "mp4" };
+}
+
+// Public meta about a movie's stream (kind + extension) without exposing the URL itself.
+export const getMovieStreamMeta = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("movies")
+      .select("video_url")
+      .eq("id", data.id)
+      .maybeSingle();
+    const url = (row as { video_url?: string | null } | null)?.video_url ?? null;
+    return { ...classify(url), youtubeUrl: classify(url).kind === "youtube" ? url : null };
+  });
+
+// Admin-only: return the raw video_url so the edit dialog can pre-fill it.
+export const adminGetMovieFull = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ adminCode: z.string(), id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    checkAdmin(data.adminCode);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("movies")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row;
+  });
