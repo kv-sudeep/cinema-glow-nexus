@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/api/stream/$id")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const url = process.env.SUPABASE_URL;
-        const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!url || !key) return new Response("Misconfigured", { status: 500 });
-        const sb = createClient<Database>(url, key, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-        const { data, error } = await sb
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data, error } = await supabaseAdmin
           .from("movies")
           .select("video_url")
           .eq("id", params.id)

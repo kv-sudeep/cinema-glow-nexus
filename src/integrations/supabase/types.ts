@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           duration_min: number | null
           genre: string | null
+          has_video: boolean | null
           id: string
           poster_url: string | null
           title: string
@@ -33,6 +34,7 @@ export type Database = {
           description?: string | null
           duration_min?: number | null
           genre?: string | null
+          has_video?: boolean | null
           id?: string
           poster_url?: string | null
           title: string
@@ -46,6 +48,7 @@ export type Database = {
           description?: string | null
           duration_min?: number | null
           genre?: string | null
+          has_video?: boolean | null
           id?: string
           poster_url?: string | null
           title?: string
