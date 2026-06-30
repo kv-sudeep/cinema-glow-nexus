@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bookmark, BookmarkCheck, Download, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
+import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
 import { addDownload, getProgress, setProgress } from "@/lib/progress";
 import { AppNav } from "@/components/AppNav";
@@ -30,6 +31,16 @@ function MoviePage() {
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
   const [dlOpen, setDlOpen] = useState(false);
+  const [videoMeta, setVideoMeta] = useState<{ kind: "youtube" | "hls" | "dash" | "video" | "none"; ext: string; youtubeUrl: string | null } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!movieQ.data?.has_video) { setVideoMeta(null); return; }
+    getMovieStreamMeta({ data: { id } })
+      .then((m) => { if (!cancelled) setVideoMeta(m as typeof videoMeta extends infer T ? T : never); })
+      .catch(() => { if (!cancelled) setVideoMeta({ kind: "video", ext: "mp4", youtubeUrl: null }); });
+    return () => { cancelled = true; };
+  }, [id, movieQ.data?.has_video]);
 
   const m = movieQ.data;
   const avg = useMemo(() => {
@@ -112,7 +123,7 @@ function MoviePage() {
               <p className="mt-4 text-muted-foreground max-w-2xl">{m.description}</p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={startVideo} disabled={!m.video_url} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)] disabled:opacity-50">
+                <button onClick={startVideo} disabled={!m.has_video} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)] disabled:opacity-50">
                   <Play className="h-4 w-4 fill-current" /> Play
                 </button>
                 {m.trailer_url && (
@@ -124,7 +135,7 @@ function MoviePage() {
                   {wlQ.data ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
                   {wlQ.data ? "On list" : "Watchlist"}
                 </button>
-                {m.video_url && (
+                {m.has_video && (
                   <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
                     <Download className="h-4 w-4" /> Download
                   </button>
@@ -138,20 +149,26 @@ function MoviePage() {
 
           {playing && (
             <Player
-              url={playing === "trailer" ? m.trailer_url! : `/api/stream/${m.id}`}
-              rawUrl={playing === "trailer" ? m.trailer_url! : m.video_url!}
+              url={
+                playing === "trailer"
+                  ? m.trailer_url!
+                  : videoMeta?.kind === "youtube" && videoMeta.youtubeUrl
+                  ? videoMeta.youtubeUrl
+                  : `/api/stream/${m.id}`
+              }
+              probeUrl={playing === "trailer" ? m.trailer_url! : (videoMeta?.youtubeUrl ?? `stream.${videoMeta?.ext || "mp4"}`)}
               onClose={() => setPlaying(null)}
               title={m.title}
               movieId={playing === "video" ? m.id : undefined}
             />
           )}
 
-          {dlOpen && m.video_url && (
+          {dlOpen && m.has_video && (
             <DownloadDialog
               movieId={m.id}
               title={m.title}
               streamUrl={`/api/stream/${m.id}`}
-              rawUrl={m.video_url}
+              ext={videoMeta?.ext || "mp4"}
               onClose={() => setDlOpen(false)}
             />
           )}
@@ -195,8 +212,8 @@ function MoviePage() {
   );
 }
 
-function Player({ url, rawUrl, onClose, title, movieId }: { url: string; rawUrl: string; onClose: () => void; title: string; movieId?: string }) {
-  const probe = rawUrl || url;
+function Player({ url, probeUrl, onClose, title, movieId }: { url: string; probeUrl: string; onClose: () => void; title: string; movieId?: string }) {
+  const probe = probeUrl || url;
   const isHls = /\.m3u8(\?|$)/i.test(probe);
   const isDash = /\.mpd(\?|$)/i.test(probe);
   const isYouTube = /youtu\.be|youtube\.com/.test(probe);
@@ -305,15 +322,13 @@ function Player({ url, rawUrl, onClose, title, movieId }: { url: string; rawUrl:
   );
 }
 
-function DownloadDialog({ movieId, title, streamUrl, rawUrl, onClose }: { movieId: string; title: string; streamUrl: string; rawUrl: string; onClose: () => void }) {
+function DownloadDialog({ movieId, title, streamUrl, ext, onClose }: { movieId: string; title: string; streamUrl: string; ext: string; onClose: () => void }) {
   const [size, setSize] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const fileName = useMemo(() => {
     const safe = title.replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "") || "movie";
-    const m = rawUrl.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
-    const ext = m ? m[1].toLowerCase() : "mkv";
-    return `${safe}.${ext}`;
-  }, [title, rawUrl]);
+    return `${safe}.${(ext || "mkv").toLowerCase()}`;
+  }, [title, ext]);
 
   useEffect(() => {
     let cancelled = false;
