@@ -26,15 +26,6 @@ function Browse() {
   const ratingsQ = useQuery({ queryKey: ["ratings"], queryFn: ratingsByMovie });
   const histQ = useQuery({ queryKey: ["history", getDeviceId()], queryFn: () => listViewHistory(getDeviceId(), 8) });
 
-  if (moviesQ.isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading movies…</p>
-      </div>
-    );
-  }
-
   const movies = moviesQ.data ?? [];
   const ratings = ratingsQ.data ?? {};
 
@@ -60,6 +51,15 @@ function Browse() {
   }, [histQ.data]);
 
   const featured = useMemo(() => movies.slice(0, 6), [movies]);
+
+  if (moviesQ.isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading movies…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
