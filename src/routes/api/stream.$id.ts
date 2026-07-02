@@ -20,7 +20,6 @@ export const Route = createFileRoute("/api/stream/$id")({
         });
         const headers = new Headers();
         const copy = [
-          "content-type",
           "content-length",
           "content-range",
           "accept-ranges",
@@ -32,9 +31,18 @@ export const Route = createFileRoute("/api/stream/$id")({
           const v = upstream.headers.get(h);
           if (v) headers.set(h, v);
         }
-        if (!headers.has("content-type")) {
-          headers.set("content-type", "video/x-matroska");
+        // Browsers refuse video/x-matroska, but the MKV container almost
+        // always holds H.264/AAC which Chromium plays fine when labelled mp4.
+        const upstreamType = upstream.headers.get("content-type") || "";
+        const lower = target.toLowerCase();
+        let outType = upstreamType;
+        if (!outType || /matroska|octet-stream/i.test(outType)) {
+          if (lower.includes(".webm")) outType = "video/webm";
+          else outType = "video/mp4";
+        } else if (/x-matroska/i.test(outType)) {
+          outType = "video/mp4";
         }
+        headers.set("content-type", outType);
         if (!headers.has("accept-ranges")) headers.set("accept-ranges", "bytes");
         return new Response(upstream.body, { status: upstream.status, headers });
       },
