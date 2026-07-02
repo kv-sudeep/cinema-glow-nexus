@@ -31,14 +31,14 @@ function MoviePage() {
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
   const [dlOpen, setDlOpen] = useState(false);
-  const [videoMeta, setVideoMeta] = useState<{ kind: "youtube" | "hls" | "dash" | "video" | "none"; ext: string; youtubeUrl: string | null } | null>(null);
+  const [videoMeta, setVideoMeta] = useState<{ kind: "youtube" | "hls" | "dash" | "video" | "embed" | "none"; ext: string; youtubeUrl: string | null; embedUrl: string | null } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!movieQ.data?.has_video) { setVideoMeta(null); return; }
     getMovieStreamMeta({ data: { id } })
       .then((m) => { if (!cancelled) setVideoMeta(m as typeof videoMeta extends infer T ? T : never); })
-      .catch(() => { if (!cancelled) setVideoMeta({ kind: "video", ext: "mp4", youtubeUrl: null }); });
+      .catch(() => { if (!cancelled) setVideoMeta({ kind: "video", ext: "mp4", youtubeUrl: null, embedUrl: null }); });
     return () => { cancelled = true; };
   }, [id, movieQ.data?.has_video]);
 
@@ -135,7 +135,7 @@ function MoviePage() {
                   {wlQ.data ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
                   {wlQ.data ? "On list" : "Watchlist"}
                 </button>
-                {m.has_video && (
+                {m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
                   <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
                     <Download className="h-4 w-4" /> Download
                   </button>
@@ -154,16 +154,25 @@ function MoviePage() {
                   ? m.trailer_url!
                   : videoMeta?.kind === "youtube" && videoMeta.youtubeUrl
                   ? videoMeta.youtubeUrl
+                  : videoMeta?.kind === "embed" && videoMeta.embedUrl
+                  ? videoMeta.embedUrl
                   : `/api/stream/${m.id}`
               }
-              probeUrl={playing === "trailer" ? m.trailer_url! : (videoMeta?.youtubeUrl ?? `stream.${videoMeta?.ext || "mp4"}`)}
+              probeUrl={
+                playing === "trailer"
+                  ? m.trailer_url!
+                  : videoMeta?.youtubeUrl
+                  ?? videoMeta?.embedUrl
+                  ?? `stream.${videoMeta?.ext || "mp4"}`
+              }
+              kind={playing === "trailer" ? undefined : videoMeta?.kind}
               onClose={() => setPlaying(null)}
               title={m.title}
               movieId={playing === "video" ? m.id : undefined}
             />
           )}
 
-          {dlOpen && m.has_video && (
+          {dlOpen && m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
             <DownloadDialog
               movieId={m.id}
               title={m.title}
@@ -212,11 +221,12 @@ function MoviePage() {
   );
 }
 
-function Player({ url, probeUrl, onClose, title, movieId }: { url: string; probeUrl: string; onClose: () => void; title: string; movieId?: string }) {
+function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string; probeUrl: string; onClose: () => void; title: string; movieId?: string; kind?: "youtube" | "hls" | "dash" | "video" | "embed" | "none" }) {
   const probe = probeUrl || url;
   const isHls = /\.m3u8(\?|$)/i.test(probe);
   const isDash = /\.mpd(\?|$)/i.test(probe);
-  const isYouTube = /youtu\.be|youtube\.com/.test(probe);
+  const isYouTube = kind === "youtube" || /youtu\.be|youtube\.com/.test(probe);
+  const isEmbed = kind === "embed";
   const [theater, setTheater] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -303,6 +313,15 @@ function Player({ url, probeUrl, onClose, title, movieId }: { url: string; probe
             title={title}
             allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
+            className="h-full w-full"
+          />
+        ) : isEmbed ? (
+          <iframe
+            src={url}
+            title={title}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            referrerPolicy="no-referrer"
             className="h-full w-full"
           />
         ) : (

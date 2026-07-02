@@ -94,7 +94,7 @@ export const incrementMovieViews = createServerFn({ method: "POST" })
   });
 
 function classify(url: string | null | undefined): {
-  kind: "youtube" | "hls" | "dash" | "video" | "none";
+  kind: "youtube" | "hls" | "dash" | "video" | "embed" | "none";
   ext: string;
 } {
   if (!url) return { kind: "none", ext: "" };
@@ -102,7 +102,11 @@ function classify(url: string | null | undefined): {
   if (/\.m3u8(\?|$)/i.test(url)) return { kind: "hls", ext: "m3u8" };
   if (/\.mpd(\?|$)/i.test(url)) return { kind: "dash", ext: "mpd" };
   const m = url.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
-  return { kind: "video", ext: m ? m[1].toLowerCase() : "mp4" };
+  const ext = m ? m[1].toLowerCase() : "";
+  const directExts = ["mp4", "mkv", "webm", "mov", "m4v", "ogv", "ogg", "avi", "ts"];
+  if (ext && directExts.includes(ext)) return { kind: "video", ext };
+  // Anything else (embed pages, unknown hosts) — render as iframe.
+  return { kind: "embed", ext: "" };
 }
 
 // Public meta about a movie's stream (kind + extension) without exposing the URL itself.
@@ -116,7 +120,13 @@ export const getMovieStreamMeta = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     const url = (row as { video_url?: string | null } | null)?.video_url ?? null;
-    return { ...classify(url), youtubeUrl: classify(url).kind === "youtube" ? url : null };
+    const c = classify(url);
+    return {
+      ...c,
+      youtubeUrl: c.kind === "youtube" ? url : null,
+      // Embed / HLS pages are already public URLs meant to be iframed/streamed by the browser.
+      embedUrl: c.kind === "embed" || c.kind === "hls" ? url : null,
+    };
   });
 
 // Admin-only: return the raw video_url so the edit dialog can pre-fill it.
