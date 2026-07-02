@@ -99,7 +99,7 @@ function classify(url: string | null | undefined): {
 } {
   if (!url) return { kind: "none", ext: "" };
   if (/youtu\.be|youtube\.com/.test(url)) return { kind: "youtube", ext: "" };
-  if (/\.m3u8(\?|$)/i.test(url) || /[?&]t=hls(\b|&|$)/i.test(url)) return { kind: "hls", ext: "m3u8" };
+  if (/\.m3u8(\?|$)/i.test(url)) return { kind: "hls", ext: "m3u8" };
   if (/\.mpd(\?|$)/i.test(url)) return { kind: "dash", ext: "mpd" };
   const m = url.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
   const ext = m ? m[1].toLowerCase() : "";
