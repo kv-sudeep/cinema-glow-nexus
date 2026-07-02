@@ -135,7 +135,7 @@ function MoviePage() {
                   {wlQ.data ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
                   {wlQ.data ? "On list" : "Watchlist"}
                 </button>
-                {m.has_video && (
+                {m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
                   <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
                     <Download className="h-4 w-4" /> Download
                   </button>
@@ -172,7 +172,7 @@ function MoviePage() {
             />
           )}
 
-          {dlOpen && m.has_video && (
+          {dlOpen && m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
             <DownloadDialog
               movieId={m.id}
               title={m.title}
