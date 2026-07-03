@@ -295,7 +295,9 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
         ref={wrapRef}
         className={
           "relative bg-black rounded-2xl overflow-hidden shadow-[0_30px_80px_oklch(0_0_0/0.8)] " +
-          (theater ? "w-full h-full max-w-none aspect-auto" : "w-full max-w-5xl aspect-video")
+          (theater || isEmbed
+            ? "w-full h-[100dvh] sm:h-[92vh] max-w-none"
+            : "w-full max-w-5xl aspect-video")
         }
         onClick={(e) => e.stopPropagation()}
       >
