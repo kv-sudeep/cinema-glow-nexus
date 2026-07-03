@@ -208,8 +208,8 @@ function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onC
         </div>
 
         <AssetField label="Poster" url={form.poster_url} onUrl={(u) => set("poster_url", u)} progress={progress.poster} onFile={(f) => doUpload("poster", f)} accept="image/*" />
-        <AssetField label="Trailer (URL or video file)" url={form.trailer_url} onUrl={(u) => set("trailer_url", u)} progress={progress.trailer} onFile={(f) => doUpload("trailer", f)} accept="video/*" hint="YouTube links work too" />
-        <AssetField label="Movie video (URL, HLS .m3u8, DASH .mpd, or file)" url={form.video_url} onUrl={(u) => set("video_url", u)} progress={progress.video} onFile={(f) => doUpload("video", f)} accept="video/*" />
+        <AssetField label="Trailer (URL or video file)" url={form.trailer_url} onUrl={(u) => set("trailer_url", u)} progress={progress.trailer} onFile={(f) => doUpload("trailer", f)} accept="video/*" hint={detectUrlKind(form.trailer_url)} />
+        <AssetField label="Movie video (URL, HLS .m3u8, DASH .mpd, or file)" url={form.video_url} onUrl={(u) => set("video_url", u)} progress={progress.video} onFile={(f) => doUpload("video", f)} accept="video/*" hint={detectUrlKind(form.video_url)} />
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-full glass">Cancel</button>
@@ -226,6 +226,20 @@ function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onC
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="text-xs text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>;
+}
+
+function detectUrlKind(url: string): string {
+  const u = url.trim();
+  if (!u) return "";
+  try { new URL(u); } catch { return "⚠ Not a valid URL"; }
+  if (/youtu\.be|youtube\.com/i.test(u)) return "✓ Detected: YouTube (embed)";
+  if (/\.m3u8(\?|$)/i.test(u)) return "✓ Detected: HLS stream (.m3u8)";
+  if (/\.mpd(\?|$)/i.test(u)) return "✓ Detected: DASH stream (.mpd)";
+  const m = u.match(/\.([a-z0-9]{2,5})(?:\?|$)/i);
+  const ext = m ? m[1].toLowerCase() : "";
+  const direct = ["mp4","mkv","webm","mov","m4v","ogv","ogg","avi","ts"];
+  if (ext && direct.includes(ext)) return `✓ Detected: Direct video (.${ext}) — will stream via proxy`;
+  return "ℹ Detected: Embed page — will render as iframe (host must allow embedding)";
 }
 
 function AssetField({ label, url, onUrl, onFile, progress, accept, hint }: { label: string; url: string; onUrl: (s: string) => void; onFile: (f: File) => void; progress?: number; accept: string; hint?: string }) {
