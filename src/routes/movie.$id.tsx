@@ -183,7 +183,7 @@ function MoviePage() {
 
           <section className="mt-12 grid md:grid-cols-[1fr_360px] gap-8">
             <div>
-              <h2 className="text-xl font-bold mb-4">Reviews ({reviewsQ.data?.length ?? 0})</h2>
+              <h2 className="text-xl font-bold mb-4 inline-flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> Reviews ({reviewsQ.data?.length ?? 0})</h2>
               <div className="space-y-3">
                 {(reviewsQ.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Be the first to review.</p>}
                 {(reviewsQ.data ?? []).map((r) => (
