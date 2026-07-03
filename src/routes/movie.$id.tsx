@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
