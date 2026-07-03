@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
@@ -131,17 +131,16 @@ function MoviePage() {
                     Trailer
                   </button>
                 )}
-                <button onClick={onToggleWl} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                  {wlQ.data ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
-                  {wlQ.data ? "On list" : "Watchlist"}
+                <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                  {wlQ.data ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
                 </button>
                 {m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
-                  <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                    <Download className="h-4 w-4" /> Download
+                  <button onClick={() => setDlOpen(true)} title="Download" aria-label="Download" className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                    <Download className="h-5 w-5" />
                   </button>
                 )}
-                <button onClick={onShare} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                  <Share2 className="h-4 w-4" /> Share
+                <button onClick={onShare} title="Share" aria-label="Share" className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                  <Share2 className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -184,7 +183,7 @@ function MoviePage() {
 
           <section className="mt-12 grid md:grid-cols-[1fr_360px] gap-8">
             <div>
-              <h2 className="text-xl font-bold mb-4">Reviews ({reviewsQ.data?.length ?? 0})</h2>
+              <h2 className="text-xl font-bold mb-4 inline-flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> Reviews ({reviewsQ.data?.length ?? 0})</h2>
               <div className="space-y-3">
                 {(reviewsQ.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Be the first to review.</p>}
                 {(reviewsQ.data ?? []).map((r) => (
