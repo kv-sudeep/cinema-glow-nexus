@@ -131,17 +131,16 @@ function MoviePage() {
                     Trailer
                   </button>
                 )}
-                <button onClick={onToggleWl} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                  {wlQ.data ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
-                  {wlQ.data ? "On list" : "Watchlist"}
+                <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                  {wlQ.data ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
                 </button>
                 {m.has_video && videoMeta?.kind !== "embed" && videoMeta?.kind !== "youtube" && (
-                  <button onClick={() => setDlOpen(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                    <Download className="h-4 w-4" /> Download
+                  <button onClick={() => setDlOpen(true)} title="Download" aria-label="Download" className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                    <Download className="h-5 w-5" />
                   </button>
                 )}
-                <button onClick={onShare} className="inline-flex items-center gap-2 px-4 py-3 rounded-full glass hover:bg-white/10">
-                  <Share2 className="h-4 w-4" /> Share
+                <button onClick={onShare} title="Share" aria-label="Share" className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+                  <Share2 className="h-5 w-5" />
                 </button>
               </div>
             </div>
