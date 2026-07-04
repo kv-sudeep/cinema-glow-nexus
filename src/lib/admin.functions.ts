@@ -14,7 +14,8 @@ const movieFields = z.object({
   description: z.string().max(5000).nullable().optional(),
   poster_url: z.string().url().max(2000).nullable().optional(),
   trailer_url: z.string().url().max(2000).nullable().optional(),
-  video_url: z.string().url().max(2000).nullable().optional(),
+  // Accept a single URL OR a multi-language block: `kannada|url\nhindi|url\ntelugu|url`
+  video_url: z.string().max(6000).nullable().optional(),
   genre: z.string().max(120).nullable().optional(),
   year: z.number().int().min(1800).max(3000).nullable().optional(),
   duration_min: z.number().int().min(0).max(100000).nullable().optional(),
@@ -109,9 +110,36 @@ function classify(url: string | null | undefined): {
   return { kind: "embed", ext: "" };
 }
 
+// Parse the video_url field into per-language entries.
+// Supports single URL or lines like `Kannada|https://…`. Language names are trimmed.
+export function parseLangSources(raw: string | null | undefined): { lang: string; url: string }[] {
+  if (!raw) return [];
+  const text = raw.trim();
+  if (!text) return [];
+  if (!text.includes("|") && !text.includes("\n")) {
+    return [{ lang: "Default", url: text }];
+  }
+  const out: { lang: string; url: string }[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const l = line.trim();
+    if (!l) continue;
+    const idx = l.indexOf("|");
+    if (idx > 0) {
+      const lang = l.slice(0, idx).trim();
+      const url = l.slice(idx + 1).trim();
+      if (lang && url) out.push({ lang, url });
+    } else {
+      out.push({ lang: "Default", url: l });
+    }
+  }
+  return out;
+}
+
 // Public meta about a movie's stream (kind + extension) without exposing the URL itself.
 export const getMovieStreamMeta = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid(), lang: z.string().max(60).optional() }).parse(data),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
@@ -119,13 +147,22 @@ export const getMovieStreamMeta = createServerFn({ method: "POST" })
       .select("video_url")
       .eq("id", data.id)
       .maybeSingle();
-    const url = (row as { video_url?: string | null } | null)?.video_url ?? null;
+    const raw = (row as { video_url?: string | null } | null)?.video_url ?? null;
+    const sources = parseLangSources(raw);
+    const languages = sources.map((s) => s.lang);
+    const picked =
+      (data.lang && sources.find((s) => s.lang.toLowerCase() === data.lang!.toLowerCase())) ||
+      sources[0] ||
+      null;
+    const url = picked?.url ?? null;
     const c = classify(url);
     return {
       ...c,
       youtubeUrl: c.kind === "youtube" ? url : null,
       // Embed / HLS pages are already public URLs meant to be iframed/streamed by the browser.
       embedUrl: c.kind === "embed" || c.kind === "hls" ? url : null,
+      languages,
+      language: picked?.lang ?? null,
     };
   });
 

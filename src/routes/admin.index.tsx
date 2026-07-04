@@ -209,7 +209,7 @@ function MovieDialog({ initial, onClose, onSaved }: { initial: Movie | null; onC
 
         <AssetField label="Poster" url={form.poster_url} onUrl={(u) => set("poster_url", u)} progress={progress.poster} onFile={(f) => doUpload("poster", f)} accept="image/*" />
         <AssetField label="Trailer (URL or video file)" url={form.trailer_url} onUrl={(u) => set("trailer_url", u)} progress={progress.trailer} onFile={(f) => doUpload("trailer", f)} accept="video/*" hint={detectUrlKind(form.trailer_url)} />
-        <AssetField label="Movie video (URL, HLS .m3u8, DASH .mpd, or file)" url={form.video_url} onUrl={(u) => set("video_url", u)} progress={progress.video} onFile={(f) => doUpload("video", f)} accept="video/*" hint={detectUrlKind(form.video_url)} />
+        <AssetField label="Movie video (URL, HLS .m3u8, DASH .mpd, or file). For multi-language, use one per line: `Kannada|https://…`" url={form.video_url} onUrl={(u) => set("video_url", u)} progress={progress.video} onFile={(f) => doUpload("video", f)} accept="video/*" hint={detectUrlKind(form.video_url)} multiline />
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-full glass">Cancel</button>
@@ -231,6 +231,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function detectUrlKind(url: string): string {
   const u = url.trim();
   if (!u) return "";
+  if (u.includes("\n") || /^[A-Za-z][\w\s]*\|/.test(u)) {
+    const langs = u.split(/\r?\n/).map((l) => l.split("|")[0].trim()).filter(Boolean);
+    return `✓ Detected: Multi-language sources (${langs.join(", ")})`;
+  }
   try { new URL(u); } catch { return "⚠ Not a valid URL"; }
   if (/youtu\.be|youtube\.com/i.test(u)) return "✓ Detected: YouTube (embed)";
   if (/\.m3u8(\?|$)/i.test(u)) return "✓ Detected: HLS stream (.m3u8)";
@@ -242,13 +246,23 @@ function detectUrlKind(url: string): string {
   return "ℹ Detected: Embed page — will render as iframe (host must allow embedding)";
 }
 
-function AssetField({ label, url, onUrl, onFile, progress, accept, hint }: { label: string; url: string; onUrl: (s: string) => void; onFile: (f: File) => void; progress?: number; accept: string; hint?: string }) {
+function AssetField({ label, url, onUrl, onFile, progress, accept, hint, multiline }: { label: string; url: string; onUrl: (s: string) => void; onFile: (f: File) => void; progress?: number; accept: string; hint?: string; multiline?: boolean }) {
   return (
     <div>
       <label className="block">
         <span className="text-xs text-muted-foreground">{label}</span>
         <div className="mt-1 flex gap-2">
-          <input value={url} onChange={(e) => onUrl(e.target.value)} placeholder="https://…" className="inp flex-1" />
+          {multiline ? (
+            <textarea
+              value={url}
+              onChange={(e) => onUrl(e.target.value)}
+              placeholder={"https://…\nor\nKannada|https://…\nHindi|https://…\nTelugu|https://…"}
+              rows={3}
+              className="inp flex-1 resize-y font-mono text-xs"
+            />
+          ) : (
+            <input value={url} onChange={(e) => onUrl(e.target.value)} placeholder="https://…" className="inp flex-1" />
+          )}
           <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl glass hover:bg-white/10 text-sm">
             <Upload className="h-4 w-4" /> Upload
             <input type="file" accept={accept} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
