@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { parseLangSources } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/api/stream/$id")({
   server: {
@@ -13,7 +14,15 @@ export const Route = createFileRoute("/api/stream/$id")({
         if (error || !data?.video_url) {
           return new Response("Not found", { status: 404 });
         }
-        const target = data.video_url;
+        const url = new URL(request.url);
+        const langParam = url.searchParams.get("lang");
+        const sources = parseLangSources(data.video_url);
+        const picked =
+          (langParam &&
+            sources.find((s) => s.lang.toLowerCase() === langParam.toLowerCase())) ||
+          sources[0];
+        if (!picked) return new Response("Not found", { status: 404 });
+        const target = picked.url;
         const range = request.headers.get("range");
         const upstream = await fetch(target, {
           headers: range ? { Range: range } : undefined,
