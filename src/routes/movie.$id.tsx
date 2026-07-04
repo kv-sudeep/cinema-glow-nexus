@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, Languages, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, Sun, Volume2, X } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
@@ -31,16 +31,17 @@ function MoviePage() {
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
   const [dlOpen, setDlOpen] = useState(false);
-  const [videoMeta, setVideoMeta] = useState<{ kind: "youtube" | "hls" | "dash" | "video" | "embed" | "none"; ext: string; youtubeUrl: string | null; embedUrl: string | null } | null>(null);
+  const [videoMeta, setVideoMeta] = useState<{ kind: "youtube" | "hls" | "dash" | "video" | "embed" | "none"; ext: string; youtubeUrl: string | null; embedUrl: string | null; languages: string[]; language: string | null } | null>(null);
+  const [lang, setLang] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!movieQ.data?.has_video) { setVideoMeta(null); return; }
-    getMovieStreamMeta({ data: { id } })
+    getMovieStreamMeta({ data: { id, lang: lang ?? undefined } })
       .then((m) => { if (!cancelled) setVideoMeta(m as typeof videoMeta extends infer T ? T : never); })
-      .catch(() => { if (!cancelled) setVideoMeta({ kind: "video", ext: "mp4", youtubeUrl: null, embedUrl: null }); });
+      .catch(() => { if (!cancelled) setVideoMeta({ kind: "video", ext: "mp4", youtubeUrl: null, embedUrl: null, languages: [], language: null }); });
     return () => { cancelled = true; };
-  }, [id, movieQ.data?.has_video]);
+  }, [id, movieQ.data?.has_video, lang]);
 
   const m = movieQ.data;
   const avg = useMemo(() => {
@@ -143,6 +144,30 @@ function MoviePage() {
                   <Share2 className="h-5 w-5" />
                 </button>
               </div>
+              {videoMeta && videoMeta.languages.length > 1 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Languages className="h-3.5 w-3.5" /> Audio / Language:
+                  </span>
+                  {videoMeta.languages.map((L) => {
+                    const active = (lang ?? videoMeta.language) === L;
+                    return (
+                      <button
+                        key={L}
+                        onClick={() => setLang(L)}
+                        className={
+                          "px-3 py-1 rounded-full text-xs border transition " +
+                          (active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "glass border-white/10 hover:bg-white/10")
+                        }
+                      >
+                        {L}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -155,7 +180,7 @@ function MoviePage() {
                   ? videoMeta.youtubeUrl
                   : videoMeta?.kind === "embed" && videoMeta.embedUrl
                   ? videoMeta.embedUrl
-                  : `/api/stream/${m.id}`
+                  : `/api/stream/${m.id}${lang ? `?lang=${encodeURIComponent(lang)}` : ""}`
               }
               probeUrl={
                 playing === "trailer"
@@ -227,7 +252,16 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
   const isYouTube = kind === "youtube" || /youtu\.be|youtube\.com/.test(probe);
   const isEmbed = kind === "embed";
   const [theater, setTheater] = useState(false);
+  const [brightness, setBrightness] = useState(100);
+  const [volume, setVolume] = useState(100);
+  const [showControls, setShowControls] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isYouTube || isEmbed) return;
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (v) v.volume = Math.max(0, Math.min(1, volume / 100));
+  }, [volume, isYouTube, isEmbed, url]);
 
   async function toggleFullscreen() {
     const el = wrapRef.current;
@@ -301,6 +335,11 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          {!isYouTube && !isEmbed && (
+            <button onClick={() => setShowControls((v) => !v)} title="Brightness & volume" className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1.5">
+              <Sun className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1.5">
             {theater ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             {theater ? "Exit theater" : "Theater"}
@@ -308,6 +347,36 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
           <button onClick={toggleFullscreen} title="Fullscreen" className="px-3 py-1.5 rounded-full glass text-xs">Fullscreen</button>
           <button onClick={onClose} className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1"><X className="h-3.5 w-3.5" /> Close</button>
         </div>
+        {showControls && !isYouTube && !isEmbed && (
+          <div className="absolute top-14 right-3 z-10 glass rounded-2xl p-4 w-64 space-y-3">
+            <div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
+                <Sun className="h-3.5 w-3.5" /> Brightness <span className="ml-auto tabular-nums">{brightness}%</span>
+              </label>
+              <input
+                type="range"
+                min={20}
+                max={200}
+                value={brightness}
+                onChange={(e) => setBrightness(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
+                <Volume2 className="h-3.5 w-3.5" /> Volume <span className="ml-auto tabular-nums">{volume}%</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+          </div>
+        )}
         {isYouTube ? (
           <iframe
             src={toYouTubeEmbed(probe)}
@@ -335,6 +404,7 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
             playsInline
             preload="metadata"
             className="h-full w-full bg-black"
+            style={{ filter: `brightness(${brightness}%)` }}
           />
         )}
       </div>
