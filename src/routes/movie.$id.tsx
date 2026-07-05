@@ -142,8 +142,8 @@ function MoviePage() {
                   </button>
                 )}
                 {m.has_video && (
-                  <button onClick={() => { setAutoFs(true); startVideo(); }} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
-                    <Play className="h-4 w-4 fill-current" /> Watch now
+                  <button onClick={() => { setAutoFs(true); startVideo(); }} title="Play" aria-label="Play" className="h-11 w-11 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground inline-flex items-center justify-center shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
+                    <Play className="h-5 w-5 fill-current" />
                   </button>
                 )}
                 <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
