@@ -7,6 +7,7 @@ export function MovieCard({ movie, avgRating }: { movie: Movie; avgRating?: numb
     <Link
       to="/movie/$id"
       params={{ id: movie.id }}
+      hash="play"
       className="group block tilt-3d"
     >
       <div className="tilt-3d-inner glow-card red-glow overflow-hidden rounded-2xl">

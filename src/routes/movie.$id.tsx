@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, Languages, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, Sun, Volume2, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, Languages, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, Sun, Volume2 } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
@@ -27,6 +27,7 @@ function MoviePage() {
   const wlQ = useQuery({ queryKey: ["wl", id, device], queryFn: () => isOnWatchlist(device, id) });
 
   const [playing, setPlaying] = useState<"trailer" | "video" | null>(null);
+  const [autoFs, setAutoFs] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
@@ -64,6 +65,19 @@ function MoviePage() {
     const cur = m;
     if (cur) incrementViews(id, cur.views).catch(() => {});
   };
+
+  // Auto-start playback in fullscreen when arriving from a movie card (#play hash)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!movieQ.data?.has_video) return;
+    if (window.location.hash !== "#play") return;
+    if (playing) return;
+    setAutoFs(true);
+    startVideo();
+    // clear the hash so refresh doesn't retrigger
+    try { history.replaceState(null, "", window.location.pathname + window.location.search); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movieQ.data?.has_video]);
 
   async function onSubmitReview(e: React.FormEvent) {
     e.preventDefault();
@@ -124,12 +138,14 @@ function MoviePage() {
               <p className="mt-4 text-muted-foreground max-w-2xl">{m.description}</p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={startVideo} disabled={!m.has_video} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)] disabled:opacity-50">
-                  <Play className="h-4 w-4 fill-current" /> Play
-                </button>
                 {m.trailer_url && (
                   <button onClick={() => setPlaying("trailer")} className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass hover:bg-white/10">
                     Trailer
+                  </button>
+                )}
+                {m.has_video && (
+                  <button onClick={() => { setAutoFs(true); startVideo(); }} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
+                    <Play className="h-4 w-4 fill-current" /> Watch now
                   </button>
                 )}
                 <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
@@ -173,6 +189,7 @@ function MoviePage() {
 
           {playing && (
             <Player
+              autoFullscreen={playing === "video" && autoFs}
               url={
                 playing === "trailer"
                   ? m.trailer_url!
@@ -245,16 +262,15 @@ function MoviePage() {
   );
 }
 
-function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string; probeUrl: string; onClose: () => void; title: string; movieId?: string; kind?: "youtube" | "hls" | "dash" | "video" | "embed" | "none" }) {
+function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }: { url: string; probeUrl: string; onClose: () => void; title: string; movieId?: string; kind?: "youtube" | "hls" | "dash" | "video" | "embed" | "none"; autoFullscreen?: boolean }) {
   const probe = probeUrl || url;
   const isHls = /\.m3u8(\?|$)/i.test(probe);
   const isDash = /\.mpd(\?|$)/i.test(probe);
   const isYouTube = kind === "youtube" || /youtu\.be|youtube\.com/.test(probe);
   const isEmbed = kind === "embed";
-  const [theater, setTheater] = useState(false);
+  const [theater, setTheater] = useState(true);
   const [brightness, setBrightness] = useState(100);
   const [volume, setVolume] = useState(100);
-  const [showControls, setShowControls] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -268,6 +284,22 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
     if (!el) return;
     if (document.fullscreenElement) await document.exitFullscreen();
     else await el.requestFullscreen();
+  }
+
+  // Auto-enter fullscreen when opened from a movie card
+  useEffect(() => {
+    if (!autoFullscreen) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.requestFullscreen?.().catch(() => {});
+    }, 120);
+    return () => clearTimeout(t);
+  }, [autoFullscreen]);
+
+  async function handleBack() {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+    onClose();
   }
 
   useEffect(() => {
@@ -334,47 +366,59 @@ function Player({ url, probeUrl, onClose, title, movieId, kind }: { url: string;
         }
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-          {!isYouTube && !isEmbed && (
-            <button onClick={() => setShowControls((v) => !v)} title="Brightness & volume" className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1.5">
-              <Sun className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1.5">
-            {theater ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            {theater ? "Exit theater" : "Theater"}
+        {/* Top-left back button */}
+        <button
+          onClick={handleBack}
+          title="Back"
+          aria-label="Back"
+          className="absolute top-3 left-3 z-20 h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        {/* Top-right: theater + fullscreen toggles */}
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+            {theater ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
-          <button onClick={toggleFullscreen} title="Fullscreen" className="px-3 py-1.5 rounded-full glass text-xs">Fullscreen</button>
-          <button onClick={onClose} className="px-3 py-1.5 rounded-full glass text-xs inline-flex items-center gap-1"><X className="h-3.5 w-3.5" /> Close</button>
+          <button onClick={toggleFullscreen} title="Fullscreen" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+            <Maximize2 className="h-4 w-4" />
+          </button>
         </div>
-        {showControls && !isYouTube && !isEmbed && (
-          <div className="absolute top-14 right-3 z-10 glass rounded-2xl p-4 w-64 space-y-3">
-            <div>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
-                <Sun className="h-3.5 w-3.5" /> Brightness <span className="ml-auto tabular-nums">{brightness}%</span>
-              </label>
+
+        {/* Left side: brightness slider (vertical) */}
+        {!isYouTube && !isEmbed && (
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
+            <Sun className="h-4 w-4 text-white/80" />
+            <div className="h-32 w-6 flex items-center justify-center">
               <input
                 type="range"
                 min={20}
                 max={200}
                 value={brightness}
                 onChange={(e) => setBrightness(Number(e.target.value))}
-                className="w-full accent-primary"
+                className="w-32 accent-primary -rotate-90"
               />
             </div>
-            <div>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
-                <Volume2 className="h-3.5 w-3.5" /> Volume <span className="ml-auto tabular-nums">{volume}%</span>
-              </label>
+            <span className="text-[10px] tabular-nums text-white/70">{brightness}%</span>
+          </div>
+        )}
+
+        {/* Right side: volume slider (vertical) */}
+        {!isYouTube && !isEmbed && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
+            <Volume2 className="h-4 w-4 text-white/80" />
+            <div className="h-32 w-6 flex items-center justify-center">
               <input
                 type="range"
                 min={0}
                 max={100}
                 value={volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-full accent-primary"
+                className="w-32 accent-primary -rotate-90"
               />
             </div>
+            <span className="text-[10px] tabular-nums text-white/70">{volume}%</span>
           </div>
         )}
         {isYouTube ? (
