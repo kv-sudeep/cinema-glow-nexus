@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bookmark, BookmarkCheck, Download, Languages, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, Sun, Volume2, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Download, Languages, MessageSquare, Maximize2, Minimize2, Play, Share2, Star, Sun, Volume2 } from "lucide-react";
 import { addReview, getMovie, incrementViews, isOnWatchlist, listReviews, logView, toggleWatchlist } from "@/lib/movies";
 import { getMovieStreamMeta } from "@/lib/admin.functions";
 import { getDeviceId, getDisplayName, getRole, setDisplayName } from "@/lib/auth";
@@ -27,6 +27,7 @@ function MoviePage() {
   const wlQ = useQuery({ queryKey: ["wl", id, device], queryFn: () => isOnWatchlist(device, id) });
 
   const [playing, setPlaying] = useState<"trailer" | "video" | null>(null);
+  const [autoFs, setAutoFs] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [name, setName] = useState(() => getDisplayName());
@@ -64,6 +65,19 @@ function MoviePage() {
     const cur = m;
     if (cur) incrementViews(id, cur.views).catch(() => {});
   };
+
+  // Auto-start playback in fullscreen when arriving from a movie card (#play hash)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!movieQ.data?.has_video) return;
+    if (window.location.hash !== "#play") return;
+    if (playing) return;
+    setAutoFs(true);
+    startVideo();
+    // clear the hash so refresh doesn't retrigger
+    try { history.replaceState(null, "", window.location.pathname + window.location.search); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movieQ.data?.has_video]);
 
   async function onSubmitReview(e: React.FormEvent) {
     e.preventDefault();
@@ -124,12 +138,14 @@ function MoviePage() {
               <p className="mt-4 text-muted-foreground max-w-2xl">{m.description}</p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={startVideo} disabled={!m.has_video} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)] disabled:opacity-50">
-                  <Play className="h-4 w-4 fill-current" /> Play
-                </button>
                 {m.trailer_url && (
                   <button onClick={() => setPlaying("trailer")} className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass hover:bg-white/10">
                     Trailer
+                  </button>
+                )}
+                {m.has_video && (
+                  <button onClick={() => { setAutoFs(true); startVideo(); }} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
+                    <Play className="h-4 w-4 fill-current" /> Watch now
                   </button>
                 )}
                 <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
@@ -173,6 +189,7 @@ function MoviePage() {
 
           {playing && (
             <Player
+              autoFullscreen={playing === "video" && autoFs}
               url={
                 playing === "trailer"
                   ? m.trailer_url!
