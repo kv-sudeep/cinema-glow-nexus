@@ -51,19 +51,10 @@ function MoviePage() {
     return arr.reduce((s, r) => s + r.rating, 0) / arr.length;
   }, [reviewsQ.data]);
 
-  if (!m) {
-    return (
-      <div className="min-h-screen"><AppNav />
-        <div className="max-w-4xl mx-auto p-10 text-center text-muted-foreground">{movieQ.isLoading ? "Loading…" : "Movie not found"}</div>
-      </div>
-    );
-  }
-
   const startVideo = () => {
     setPlaying("video");
     logView(device, id).catch(() => {});
-    const cur = m;
-    if (cur) incrementViews(id, cur.views).catch(() => {});
+    if (movieQ.data) incrementViews(id, movieQ.data.views).catch(() => {});
   };
 
   // Auto-start playback in fullscreen when arriving from a movie card (#play hash)
@@ -74,10 +65,17 @@ function MoviePage() {
     if (playing) return;
     setAutoFs(true);
     startVideo();
-    // clear the hash so refresh doesn't retrigger
     try { history.replaceState(null, "", window.location.pathname + window.location.search); } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieQ.data?.has_video]);
+
+  if (!m) {
+    return (
+      <div className="min-h-screen"><AppNav />
+        <div className="max-w-4xl mx-auto p-10 text-center text-muted-foreground">{movieQ.isLoading ? "Loading…" : "Movie not found"}</div>
+      </div>
+    );
+  }
 
   async function onSubmitReview(e: React.FormEvent) {
     e.preventDefault();
