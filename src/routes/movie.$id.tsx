@@ -51,19 +51,10 @@ function MoviePage() {
     return arr.reduce((s, r) => s + r.rating, 0) / arr.length;
   }, [reviewsQ.data]);
 
-  if (!m) {
-    return (
-      <div className="min-h-screen"><AppNav />
-        <div className="max-w-4xl mx-auto p-10 text-center text-muted-foreground">{movieQ.isLoading ? "Loading…" : "Movie not found"}</div>
-      </div>
-    );
-  }
-
   const startVideo = () => {
     setPlaying("video");
     logView(device, id).catch(() => {});
-    const cur = m;
-    if (cur) incrementViews(id, cur.views).catch(() => {});
+    if (movieQ.data) incrementViews(id, movieQ.data.views).catch(() => {});
   };
 
   // Auto-start playback in fullscreen when arriving from a movie card (#play hash)
@@ -74,10 +65,17 @@ function MoviePage() {
     if (playing) return;
     setAutoFs(true);
     startVideo();
-    // clear the hash so refresh doesn't retrigger
     try { history.replaceState(null, "", window.location.pathname + window.location.search); } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieQ.data?.has_video]);
+
+  if (!m) {
+    return (
+      <div className="min-h-screen"><AppNav />
+        <div className="max-w-4xl mx-auto p-10 text-center text-muted-foreground">{movieQ.isLoading ? "Loading…" : "Movie not found"}</div>
+      </div>
+    );
+  }
 
   async function onSubmitReview(e: React.FormEvent) {
     e.preventDefault();
@@ -144,8 +142,8 @@ function MoviePage() {
                   </button>
                 )}
                 {m.has_video && (
-                  <button onClick={() => { setAutoFs(true); startVideo(); }} className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
-                    <Play className="h-4 w-4 fill-current" /> Watch now
+                  <button onClick={() => { setAutoFs(true); startVideo(); }} title="Play" aria-label="Play" className="h-11 w-11 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground inline-flex items-center justify-center shadow-[0_0_30px_oklch(0.68_0.24_320/0.45)]">
+                    <Play className="h-5 w-5 fill-current" />
                   </button>
                 )}
                 <button onClick={onToggleWl} title={wlQ.data ? "On watchlist" : "Watchlist"} aria-label={wlQ.data ? "On watchlist" : "Watchlist"} className="h-11 w-11 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
@@ -271,6 +269,7 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
   const [theater, setTheater] = useState(true);
   const [brightness, setBrightness] = useState(100);
   const [volume, setVolume] = useState(100);
+  const [showAV, setShowAV] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -378,6 +377,11 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
 
         {/* Top-right: theater + fullscreen toggles */}
         <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          {!isYouTube && !isEmbed && (
+            <button onClick={() => setShowAV((v) => !v)} title="Brightness & volume" aria-label="Brightness & volume" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
+              <Sun className="h-4 w-4" />
+            </button>
+          )}
           <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
             {theater ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
@@ -387,7 +391,7 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
         </div>
 
         {/* Left side: brightness slider (vertical) */}
-        {!isYouTube && !isEmbed && (
+        {showAV && !isYouTube && !isEmbed && (
           <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
             <Sun className="h-4 w-4 text-white/80" />
             <div className="h-32 w-6 flex items-center justify-center">
@@ -405,7 +409,7 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
         )}
 
         {/* Right side: volume slider (vertical) */}
-        {!isYouTube && !isEmbed && (
+        {showAV && !isYouTube && !isEmbed && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
             <Volume2 className="h-4 w-4 text-white/80" />
             <div className="h-32 w-6 flex items-center justify-center">
