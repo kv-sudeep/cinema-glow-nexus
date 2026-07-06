@@ -109,7 +109,7 @@ function Browse() {
 function CategorySection({ name, items, onAdmin }: { name: string; items: Movie[]; onAdmin: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const hasItems = items.length > 0;
-  const canExpand = items.length > 5;
+  const canExpand = items.length > 0;
   return (
     <section>
       <div className="flex items-end justify-between gap-3">
