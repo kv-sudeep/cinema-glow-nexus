@@ -269,14 +269,83 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
   const [theater, setTheater] = useState(true);
   const [brightness, setBrightness] = useState(100);
   const [volume, setVolume] = useState(100);
-  const [showAV, setShowAV] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [uiVisible, setUiVisible] = useState(true);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nativeControls = isYouTube || isEmbed;
 
   useEffect(() => {
-    if (isYouTube || isEmbed) return;
+    if (nativeControls) return;
     const v = document.getElementById("cv-player") as HTMLVideoElement | null;
     if (v) v.volume = Math.max(0, Math.min(1, volume / 100));
-  }, [volume, isYouTube, isEmbed, url]);
+  }, [volume, nativeControls, url]);
+
+  // Auto-hide UI overlay after inactivity
+  const bumpUi = () => {
+    setUiVisible(true);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setUiVisible(false), 3500);
+  };
+  useEffect(() => { bumpUi(); return () => { if (hideTimer.current) clearTimeout(hideTimer.current); }; }, []);
+
+  // Wire custom controls to <video>
+  useEffect(() => {
+    if (nativeControls) return;
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (!v) return;
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onTime = () => setCurrent(v.currentTime);
+    const onMeta = () => setDuration(v.duration || 0);
+    v.addEventListener("play", onPlay);
+    v.addEventListener("pause", onPause);
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("loadedmetadata", onMeta);
+    v.addEventListener("durationchange", onMeta);
+    return () => {
+      v.removeEventListener("play", onPlay);
+      v.removeEventListener("pause", onPause);
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("loadedmetadata", onMeta);
+      v.removeEventListener("durationchange", onMeta);
+    };
+  }, [nativeControls, url]);
+
+  useEffect(() => {
+    if (nativeControls) return;
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (v) v.playbackRate = speed;
+  }, [speed, nativeControls, url]);
+
+  const togglePlay = () => {
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (!v) return;
+    if (v.paused) v.play(); else v.pause();
+  };
+  const seek = (delta: number) => {
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (!v) return;
+    v.currentTime = Math.max(0, Math.min((v.duration || 0), v.currentTime + delta));
+  };
+  const scrubTo = (val: number) => {
+    const v = document.getElementById("cv-player") as HTMLVideoElement | null;
+    if (!v || !v.duration) return;
+    v.currentTime = (val / 100) * v.duration;
+  };
+  const fmtTime = (s: number) => {
+    if (!isFinite(s) || s < 0) s = 0;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+  };
 
   async function toggleFullscreen() {
     const el = wrapRef.current;
@@ -364,67 +433,9 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
             : "w-full max-w-5xl aspect-video")
         }
         onClick={(e) => e.stopPropagation()}
+        onMouseMove={bumpUi}
+        onTouchStart={bumpUi}
       >
-        {/* Top-left back button */}
-        <button
-          onClick={handleBack}
-          title="Back"
-          aria-label="Back"
-          className="absolute top-3 left-3 z-20 h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-
-        {/* Top-right: theater + fullscreen toggles */}
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
-          {!isYouTube && !isEmbed && (
-            <button onClick={() => setShowAV((v) => !v)} title="Brightness & volume" aria-label="Brightness & volume" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
-              <Sun className="h-4 w-4" />
-            </button>
-          )}
-          <button onClick={() => setTheater((v) => !v)} title="Theater mode" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
-            {theater ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-          <button onClick={toggleFullscreen} title="Fullscreen" className="h-10 w-10 rounded-full glass hover:bg-white/10 inline-flex items-center justify-center">
-            <Maximize2 className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Left side: brightness slider (vertical) */}
-        {showAV && !isYouTube && !isEmbed && (
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
-            <Sun className="h-4 w-4 text-white/80" />
-            <div className="h-32 w-6 flex items-center justify-center">
-              <input
-                type="range"
-                min={20}
-                max={200}
-                value={brightness}
-                onChange={(e) => setBrightness(Number(e.target.value))}
-                className="w-32 accent-primary -rotate-90"
-              />
-            </div>
-            <span className="text-[10px] tabular-nums text-white/70">{brightness}%</span>
-          </div>
-        )}
-
-        {/* Right side: volume slider (vertical) */}
-        {showAV && !isYouTube && !isEmbed && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 glass rounded-full px-2 py-3">
-            <Volume2 className="h-4 w-4 text-white/80" />
-            <div className="h-32 w-6 flex items-center justify-center">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-32 accent-primary -rotate-90"
-              />
-            </div>
-            <span className="text-[10px] tabular-nums text-white/70">{volume}%</span>
-          </div>
-        )}
         {isYouTube ? (
           <iframe
             src={toYouTubeEmbed(probe)}
@@ -446,14 +457,141 @@ function Player({ url, probeUrl, onClose, title, movieId, kind, autoFullscreen }
           <video
             id="cv-player"
             src={isHls ? undefined : url}
-            controls
             controlsList="nodownload"
             autoPlay
             playsInline
             preload="metadata"
+            onClick={togglePlay}
             className="h-full w-full bg-black"
             style={{ filter: `brightness(${brightness}%)` }}
           />
+        )}
+
+        {/* Custom overlay UI — hidden for iframe/embed players */}
+        {!nativeControls && (
+          <div
+            className={
+              "absolute inset-0 z-20 pointer-events-none transition-opacity duration-300 " +
+              (uiVisible ? "opacity-100" : "opacity-0")
+            }
+          >
+            {/* Top gradient + bar */}
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent" />
+            <div className="absolute top-0 inset-x-0 flex items-start justify-between p-3 sm:p-4 pointer-events-auto">
+              <div className="flex items-start gap-2 min-w-0">
+                <button onClick={handleBack} title="Back" aria-label="Back" className="h-10 w-10 rounded-full hover:bg-white/10 inline-flex items-center justify-center shrink-0">
+                  <ArrowLeft className="h-6 w-6 text-white" />
+                </button>
+                <div className="min-w-0 mt-1.5">
+                  <div className="text-white font-semibold text-sm sm:text-base truncate">{title}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setTheater((v) => !v)} title="Theater" className="h-10 w-10 rounded-full hover:bg-white/10 inline-flex items-center justify-center">
+                  {theater ? <Minimize2 className="h-5 w-5 text-white" /> : <Maximize2 className="h-5 w-5 text-white" />}
+                </button>
+                <button onClick={toggleFullscreen} title="Fullscreen" className="h-10 w-10 rounded-full hover:bg-white/10 inline-flex items-center justify-center">
+                  <Maximize2 className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Left vertical brightness */}
+            <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-auto select-none">
+              <Sun className="h-5 w-5 text-white/90" />
+              <div className="h-36 w-6 flex items-center justify-center">
+                <input
+                  type="range"
+                  min={20}
+                  max={200}
+                  value={brightness}
+                  onChange={(e) => setBrightness(Number(e.target.value))}
+                  aria-label="Brightness"
+                  className="w-36 accent-white -rotate-90 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Right vertical volume */}
+            <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-auto select-none">
+              {volume === 0 ? <VolumeX className="h-5 w-5 text-white/90" /> : <Volume2 className="h-5 w-5 text-white/90" />}
+              <div className="h-36 w-6 flex items-center justify-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  aria-label="Volume"
+                  className="w-36 accent-white -rotate-90 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Center controls */}
+            <div className="absolute inset-0 flex items-center justify-center gap-10 sm:gap-16 pointer-events-none">
+              <button onClick={() => seek(-10)} title="Rewind 10s" aria-label="Rewind 10 seconds" className="pointer-events-auto text-white/90 hover:text-white transition">
+                <Rewind className="h-10 w-10 sm:h-12 sm:w-12" strokeWidth={1.5} />
+              </button>
+              <button onClick={togglePlay} title={isPlaying ? "Pause" : "Play"} aria-label={isPlaying ? "Pause" : "Play"} className="pointer-events-auto text-white/95 hover:text-white transition">
+                {isPlaying ? <Pause className="h-16 w-16 sm:h-20 sm:w-20" strokeWidth={1.25} /> : <Play className="h-16 w-16 sm:h-20 sm:w-20" strokeWidth={1.25} />}
+              </button>
+              <button onClick={() => seek(10)} title="Forward 10s" aria-label="Forward 10 seconds" className="pointer-events-auto text-white/90 hover:text-white transition">
+                <FastForward className="h-10 w-10 sm:h-12 sm:w-12" strokeWidth={1.5} />
+              </button>
+            </div>
+
+            {/* Bottom gradient + progress + actions */}
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-5 pointer-events-auto">
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={duration ? (current / duration) * 100 : 0}
+                  onChange={(e) => scrubTo(Number(e.target.value))}
+                  aria-label="Seek"
+                  className="flex-1 accent-primary cursor-pointer"
+                />
+                <span className="text-white/90 text-xs sm:text-sm tabular-nums">
+                  {fmtTime(current)} / {fmtTime(duration)}
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-white/90">
+                <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm">
+                  <button className="inline-flex items-center gap-1.5 hover:text-white">
+                    <Compass className="h-4 w-4" /> Watch Next
+                  </button>
+                  <button className="inline-flex items-center gap-1.5 hover:text-white">
+                    <ListVideo className="h-4 w-4" /> Episodes
+                  </button>
+                </div>
+                <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm relative">
+                  <button onClick={() => setSpeedOpen((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-white">
+                    <Gauge className="h-4 w-4" /> Speed <span className="text-white/70">{speed}x</span>
+                  </button>
+                  {speedOpen && (
+                    <div className="absolute right-16 bottom-8 glass rounded-xl p-1 flex flex-col text-xs">
+                      {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => { setSpeed(s); setSpeedOpen(false); }}
+                          className={"px-3 py-1.5 rounded-lg text-left hover:bg-white/10 " + (speed === s ? "text-primary" : "")}
+                        >
+                          {s}x
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={() => setLiked((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-white">
+                    <Heart className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} /> Rate
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
