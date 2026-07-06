@@ -4,6 +4,7 @@ import {
   adminUpdateMovie,
   adminDeleteMovie,
   adminCreateSignedUpload,
+  adminSignAssetUrl,
   incrementMovieViews,
 } from "./admin.functions";
 
@@ -181,7 +182,7 @@ export async function uploadAsset(file: File, prefix: string): Promise<string> {
   const rawExt = (file.name.split(".").pop() || "bin").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) || "bin";
   const allowed = ["poster", "video", "trailer"] as const;
   if (!(allowed as readonly string[]).includes(prefix)) throw new Error("Invalid prefix");
-  const { uploadUrl, token, path, publicUrl } = await adminCreateSignedUpload({
+  const { uploadUrl, token, path } = await adminCreateSignedUpload({
     data: { adminCode: getAdminCode(), prefix: prefix as typeof allowed[number], ext: rawExt },
   });
   // Upload directly to storage via signed URL.
@@ -193,5 +194,7 @@ export async function uploadAsset(file: File, prefix: string): Promise<string> {
     const res = await fetch(uploadUrl, { method: "PUT", headers: { "content-type": file.type }, body: file });
     if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
   }
-  return publicUrl;
+  // Now that the object exists, sign a long-lived download URL.
+  const { url } = await adminSignAssetUrl({ data: { adminCode: getAdminCode(), path } });
+  return url;
 }

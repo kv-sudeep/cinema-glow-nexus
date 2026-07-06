@@ -77,11 +77,22 @@ export const adminCreateSignedUpload = createServerFn({ method: "POST" })
       .from("movie-assets")
       .createSignedUploadUrl(path);
     if (error) throw new Error(error.message);
-    const { data: dl, error: dlErr } = await supabaseAdmin.storage
+    return { path, uploadUrl: signed.signedUrl, token: signed.token };
+  });
+
+// Sign a long-lived download URL for an uploaded asset (called AFTER upload succeeds).
+export const adminSignAssetUrl = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ adminCode: z.string(), path: z.string().min(1).max(400) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    checkAdmin(data.adminCode);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: dl, error } = await supabaseAdmin.storage
       .from("movie-assets")
-      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-    if (dlErr) throw new Error(dlErr.message);
-    return { path, uploadUrl: signed.signedUrl, token: signed.token, publicUrl: dl.signedUrl };
+      .createSignedUrl(data.path, 60 * 60 * 24 * 365 * 10);
+    if (error) throw new Error(error.message);
+    return { url: dl.signedUrl };
   });
 
 export const incrementMovieViews = createServerFn({ method: "POST" })
